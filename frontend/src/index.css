@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Play:wght@400;700&family=Playwrite+NZ:wght@100..400&family=Share+Tech+Mono&family=Sixtyfour+Convergence&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* Global font-family */
+
+
+body {
+  font-family: 'Roboto', sans-serif; /* Default font for body */
+}
+
+/* Applying specific fonts */
+.font-play {
+  font-family: 'Play', sans-serif;
+}
+
+.font-roboto {
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Add any additional font class */
+.font-playwrite {
+  font-family: 'Playwrite NZ', sans-serif;
+}
+
+.font-sharetech {
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.font-sixtyfour {
+  font-family: 'Sixtyfour Convergence', sans-serif;
+}
+
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #242424;
+  overflow: hidden; /* Prevent scrolling */
+}
+
+/* Custom scrollbar removal */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  text-shadow: 0 0 10px rgba(0, 0, 255, 0.5);
+}
+
+
+
+
+
