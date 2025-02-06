@@ -642,6 +642,7 @@ const Tooltip = ({ children, message }) => {
           currentMessage={currentMessage}
           setCurrentMessage={setCurrentMessage}
           handleSendMessage={handleSendMessage}
+          userId={userId}
         />
       </div>
 
