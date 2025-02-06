@@ -1,13 +1,30 @@
-import React, { useState,useEffect,useCallback, useMemo } from "react";
-import { FaBell, FaChalkboard,FaUsers, FaInfoCircle,FaMicrophone, FaHome,  FaPaperPlane } from "react-icons/fa"; 
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  FaBell,
+  FaChalkboard,
+  FaUsers,
+  FaInfoCircle,
+  FaMicrophone,
+  FaHome,
+  FaPaperPlane,
+  FaSearch,
+  FaEllipsisV,
+  FaUserPlus,
+  FaTimes,
+  FaImage,
+  FaVideo,
+  FaFile,
+  FaSmile,
+} from "react-icons/fa";
 import Sidebar from "./Sidebar";
 import Modal from "./Modal";
 import axios from "axios";
-import { ToastContainer, toast } from 'react-toastify';  // Ensure both are imported
-import 'react-toastify/dist/ReactToastify.css';  // Import the necessary CSS for toasts
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ChatArea from "./ChatArea";
 import NotificationItem from "./NotificationItem";
 import InviteGroupModal from "./InviteGroupModal";
+import Whiteboard from "./Whiteboard";
 
 const StudentDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -18,7 +35,7 @@ const StudentDashboard = () => {
   const [newGroupDetails, setNewGroupDetails] = useState("");
   const [activeTab, setActiveTab] = useState("default");
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showGroupDetails, setShowGroupDetails] = useState(false); 
+  const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [showGroupMembers, setShowGroupMembers] = useState(false);
   const [currentMessage, setCurrentMessage] = useState("");
   const [newGroupImage, setNewGroupImage] = useState(null);
@@ -29,9 +46,14 @@ const StudentDashboard = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [attachmentType, setAttachmentType] = useState(null);
+  const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
 
-  // First, fetch the user profile to get the user ID
+  // Fetch user profile
   const fetchUserProfile = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -53,31 +75,33 @@ const StudentDashboard = () => {
       toast.error("Failed to load user profile");
     }
   }, []);
-  // Then fetch notifications using the user ID
+
+  // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     try {
       if (!userId) return;
-      
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/auth/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Add cache control headers
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "http://localhost:5000/api/auth/notifications",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
         }
-      });
-      
+      );
+
       if (response.data.notifications) {
         setNotifications(response.data.notifications);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error("Error fetching notifications:", error);
     }
   }, [userId]);
 
-  //refresh groups
-
+  // Refresh groups
   const refreshGroups = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -85,8 +109,8 @@ const StudentDashboard = () => {
 
       const response = await axios.get("http://localhost:5000/api/auth/groups", {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.data.groups) {
@@ -97,87 +121,98 @@ const StudentDashboard = () => {
     }
   };
 
+  // Handle notification update
   const handleNotificationUpdate = async () => {
     try {
       if (!userId) return;
-      
-      const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/auth/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        "http://localhost:5000/api/auth/notifications",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
-      
+      );
+
       if (response.data.notifications) {
         setNotifications(response.data.notifications);
-        await refreshGroups(); // Refresh groups after notification update
+        await refreshGroups();
       }
     } catch (error) {
-      console.error('Error updating notifications:', error);
+      console.error("Error updating notifications:", error);
     }
   };
 
-
-  
+  // Fetch member details
   const fetchMemberDetails = useCallback(async () => {
     if (!selectedChat?.members) return;
 
     try {
       const token = localStorage.getItem("token");
       const memberPromises = selectedChat.members.map(async (memberId) => {
-        // Add caching for member details
         const cachedMember = sessionStorage.getItem(`member-${memberId}`);
         if (cachedMember) {
           return JSON.parse(cachedMember);
         }
 
-        const response = await fetch(`http://localhost:5000/api/auth/user/${memberId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        
+        const response = await fetch(
+          `http://localhost:5000/api/auth/user/${memberId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
         if (response.ok) {
           const userData = await response.json();
           const memberData = {
             id: memberId,
             name: userData.name,
             image: userData.image,
-            status: 'online',
-            role: userData.role
+            status: "online",
+            role: userData.role,
           };
-          // Cache the member data
-          sessionStorage.setItem(`member-${memberId}`, JSON.stringify(memberData));
+          sessionStorage.setItem(
+            `member-${memberId}`,
+            JSON.stringify(memberData)
+          );
           return memberData;
         }
         return null;
       });
 
       const memberDetails = await Promise.all(memberPromises);
-      setGroupMembers(memberDetails.filter(member => member !== null));
+      setGroupMembers(memberDetails.filter((member) => member !== null));
     } catch (error) {
       console.error("Error fetching member details:", error);
     }
   }, [selectedChat]);
 
+  // Fetch creator details
   useEffect(() => {
     const fetchCreatorDetails = async () => {
       if (selectedChat?.createdBy) {
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(`http://localhost:5000/api/auth/user/${selectedChat.createdBy}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          const response = await fetch(
+            `http://localhost:5000/api/auth/user/${selectedChat.createdBy}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
           if (response.ok) {
             const userData = await response.json();
             setCreatorDetails({
               id: selectedChat.createdBy,
               name: userData.name,
               image: userData.image,
-              status: 'online', // You can implement real status logic later
-              role: 'Creator'
+              status: "online",
+              role: "Creator",
             });
           }
         } catch (error) {
@@ -188,19 +223,8 @@ const StudentDashboard = () => {
 
     fetchCreatorDetails();
   }, [selectedChat]);
-  
- 
-  // const notifications = [
-  //   "New message received in Chat 1.",
-  //   "You have a new group invite.",
-  //   "Your document was shared with you.",
-  //   "Your profile was updated successfully.",
-  //   "A new member joined your group.",
-  //   "Chat 3 has been archived.",
-  // ];
 
-  // Fetch groups from the backend when the component mounts
-  // Empty dependency array means this runs only once when the component mounts
+  // Fetch groups
   const fetchGroups = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -209,10 +233,9 @@ const StudentDashboard = () => {
       const response = await axios.get("http://localhost:5000/api/auth/groups", {
         headers: {
           Authorization: `Bearer ${token}`,
-          // Add cache control headers
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
       });
 
       if (response.data.groups) {
@@ -223,18 +246,22 @@ const StudentDashboard = () => {
       toast.error("Failed to load groups");
     }
   }, [userId]);
+
+  // Initial fetch user profile
   useEffect(() => {
     fetchUserProfile();
   }, [fetchUserProfile]);
 
+  // Fetch groups periodically
   useEffect(() => {
     if (userId) {
       fetchGroups();
-      const groupsInterval = setInterval(fetchGroups, 60000); // Refresh every minute
+      const groupsInterval = setInterval(fetchGroups, 60000);
       return () => clearInterval(groupsInterval);
     }
   }, [userId, fetchGroups]);
 
+  // Fetch notifications periodically
   useEffect(() => {
     if (userId) {
       fetchNotifications();
@@ -243,416 +270,471 @@ const StudentDashboard = () => {
     }
   }, [userId, fetchNotifications]);
 
+  // Fetch member details when selected chat changes
   useEffect(() => {
     fetchMemberDetails();
   }, [fetchMemberDetails]);
 
-  // Memoize filtered chats
+  // Filter chats based on search term
   const filteredChats = useMemo(() => {
     return chats.filter((chat) =>
       chat.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [chats, searchTerm]);
 
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
+  // Toggle functions
+  const toggleNotifications = () => setShowNotifications(!showNotifications);
+  const toggleGroupMembers = () => setShowGroupMembers(!showGroupMembers);
+  const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
+  const toggleGroupDetails = () => setShowGroupDetails(!showGroupDetails);
+  const toggleEmojiPicker = () => setIsEmojiPickerOpen(!isEmojiPickerOpen);
+  const toggleAttachmentMenu = () => setIsAttachmentMenuOpen(!isAttachmentMenuOpen);
+
+  // Handle file upload
+  const handleFileUpload = async (file, type) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", type);
+      formData.append("chatId", selectedChat._id);
+
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:5000/api/messages/upload",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        toast.success("File uploaded successfully");
+        // Refresh messages or handle the uploaded file
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error("Failed to upload file");
+    }
   };
 
-  const toggleGroupMembers = () => {
-    setShowGroupMembers(!showGroupMembers);
-  };
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!isSidebarOpen);
-  };
-
+  // Handle add group
   const handleAddGroup = async () => {
+    if (!newGroupName.trim()) {
+      toast.error("Group name is required!");
+      return;
+    }
 
-  if (!newGroupName.trim()) {
-    toast.error("Group name is required!");
-    return;
-  }
+    if (!newGroupDetails.trim()) {
+      toast.error("Group description is required!");
+      return;
+    }
 
-  if (!newGroupDetails.trim()) {
-    toast.error("Group description is required!");
-    return;
-  }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("Authentication required");
+      return;
+    }
 
-  const token = localStorage.getItem("token");
-  if (!token) {
-    toast.error("Authentication required");
-    return;
-  }
-
-  // Convert image to base64 if present
-  let imageToSend = newGroupImage;
-  if (newGroupImage && newGroupImage instanceof File) {
-    imageToSend = await convertToBase64(newGroupImage);
-  }
+    let imageToSend = newGroupImage;
+    if (newGroupImage && newGroupImage instanceof File) {
+      imageToSend = await convertToBase64(newGroupImage);
+    }
 
     const newGroupData = {
-    name: newGroupName,
-    description: newGroupDetails, // Include the group description
-    image: imageToSend,
-    createdBy: userId,
-    members: [userId]
-   
-};
-console.log("Group data being sent:", newGroupData);
-   
+      name: newGroupName,
+      description: newGroupDetails,
+      image: imageToSend,
+      createdBy: userId,
+      members: [userId],
+    };
 
-  try {
-    const response = await fetch("http://localhost:5000/api/auth/groups", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newGroupData),
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/groups", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newGroupData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setChats([...chats, result.group]);
+        setModalOpen(false);
+        setNewGroupName("");
+        setNewGroupDetails("");
+        setNewGroupImage(null);
+        toast.success(result.message);
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to create group");
+      }
+    } catch (error) {
+      toast.error("Something went wrong. Please try again.");
+      console.error(error);
+    }
+  };
+
+  // Convert file to base64
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
-
-    
-
-    if (response.ok) {
-      const result = await response.json();
-      setChats([...chats, result.group]);
-      setModalOpen(false);
-      setNewGroupName("");
-      setNewGroupDetails(""); // Reset the group description
-      setNewGroupImage(null);
-      toast.success(result.message);
-    } else {
-      const errorData = await response.json();
-      toast.error(errorData.message || "Failed to create group");
-    }
-  } catch (error) {
-    toast.error("Something went wrong. Please try again.");
-    console.error(error);
-  }
-};
-
-
-
-// Helper function to convert the file to base64
-const convertToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file); // Convert the file to base64
-  });
-};
-
-const Tooltip = ({ children, message }) => {
-  return (
-    <div className="relative flex items-center group">
-      {children}
-      <span className="absolute top-full mt-2 hidden group-hover:flex items-center bg-gray-400 text-white text-sm px-3 py-1 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        {message}
-      </span>
-    </div>
-  );
-};
-
-
-
-  const handleDeleteGroup = (id) => {
-    setChats((prevChats) => prevChats.filter((chat) => chat.id !== id));
-    alert("Group deleted successfully!");
   };
 
-  const handleSendMessage = () => {
-    if (selectedChat && currentMessage.trim()) {
-      const updatedChats = chats.map((chat) =>
-        chat.id === selectedChat.id
-          ? { ...chat, message: currentMessage }
-          : chat
+  // Tooltip component
+  const Tooltip = ({ children, message }) => {
+    return (
+      <div className="relative flex items-center group">
+        {children}
+        <span className="absolute top-full mt-2 hidden group-hover:flex items-center bg-gray-800 text-white text-sm px-3 py-1 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          {message}
+        </span>
+      </div>
+    );
+  };
+
+  // Handle send message
+  const handleSendMessage = async () => {
+    if (!currentMessage.trim() || !selectedChat) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        "http://localhost:5000/api/messages",
+        {
+          chatId: selectedChat._id,
+          content: currentMessage,
+          type: "text",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      setChats(updatedChats);
-      setCurrentMessage("");
+
+      if (response.data.success) {
+        setMessages([...messages, response.data.message]);
+        setCurrentMessage("");
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message");
     }
   };
 
-  const toggleGroupDetails = () => {
-    setShowGroupDetails(!showGroupDetails);
-  };
+  return (
+    <div className="flex h-screen overflow-hidden bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50">
+      {/* Sidebar */}
+      <div
+        className={`${
+          isSidebarOpen ? "w-[320px]" : "w-[72px]"
+        } h-screen bg-gradient-to-b from-amber-200 to-purple-300 text-black border-r transition-all duration-300 flex-shrink-0 overflow-hidden`}
+      >
+        <Sidebar
+          isOpen={isSidebarOpen}
+          onToggle={toggleSidebar}
+          onSelectChat={setSelectedChat}
+          chats={filteredChats}
+          setModalOpen={setModalOpen}
+          userId={userId}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+        />
+      </div>
 
-  
-   
-      return (
-        <div className="flex h-screen bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50">
-          <div className={`${isSidebarOpen ? "w-72" : "w-16"} h-screen bg-gradient-to-b from-amber-200 to-purple-300 text-black border-r transition-all duration-300 overflow-x-hidden`}>
-            <Sidebar
-              isOpen={isSidebarOpen}
-              onToggle={toggleSidebar}
-              onSelectChat={setSelectedChat}
-              chats={filteredChats} // Use filteredChats instead of chats
-              setModalOpen={setModalOpen}
-              userId={userId}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-            />
-          </div>
-  
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col bg-gray-900 overflow-hidden">
-          {/* Toolbar - Now always visible */}
-          <div className="flex gap-4 bg-blue-100 p-2 shadow-lg border-b border-gray-200 items-center justify-between">
-            <div className="flex gap-4 items-center">
-              <Tooltip message="Whiteboard">
-                <div
-                  onClick={() => setActiveTab("whiteboard")}
-                  className={`cursor-pointer p-2 rounded-full ${
-                    activeTab === "whiteboard"
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-200"
-                  } hover:bg-blue-600`}
-                >
-                  <FaChalkboard />
-                </div>
-              </Tooltip>
-              <Tooltip message="Voice Chat">
-                <div
-                  onClick={() => setActiveTab("voice")}
-                  className={`cursor-pointer p-2 rounded-full ${
-                    activeTab === "voice" ? "bg-blue-500 text-white" : "bg-gray-200"
-                  } hover:bg-blue-600`}
-                >
-                  <FaMicrophone />
-                </div>
-              </Tooltip>
-              <Tooltip message="Home">
-                <div
-                  onClick={() => setActiveTab("default")}
-                  className={`cursor-pointer p-2 rounded-full ${
-                    activeTab === "default" ? "bg-blue-500 text-white" : "bg-gray-200"
-                  } hover:bg-blue-600`}
-                >
-                  <FaHome />
-                </div>
-              </Tooltip>
-            </div>
-  
-            {/* Right-aligned Icons Container */}
-            <div className="flex gap-4 items-center ml-auto">
-              <button
-                onClick={toggleGroupMembers}
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center"
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Toolbar */}
+        <div className="flex gap-4 bg-blue-100 p-2 shadow-lg border-b border-gray-200 items-center justify-between flex-shrink-0">
+          <div className="flex gap-4 items-center">
+            <Tooltip message="Whiteboard">
+              <div
+                onClick={() => setActiveTab("whiteboard")}
+                className={`cursor-pointer p-2 rounded-full ${
+                  activeTab === "whiteboard"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200"
+                } hover:bg-blue-600 transition-colors duration-200`}
               >
-                <FaUsers size={24} color={showGroupMembers ? "#4A90E2" : "#6B7280"} />
-              </button>
-              <button
-                onClick={toggleNotifications}
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center"
-              >
-                <FaBell
-                  size={24}
-                  color={showNotifications ? "#4A90E2" : "#6B7280"}
-                />
-              </button>
-              <button
-                onClick={toggleGroupDetails}
-                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center"
-              >
-                <FaInfoCircle size={24} color={showGroupDetails ? "#4A90E2" : "#6B7280"} />
-              </button>
-            </div>
-          </div>
-         {/* Group Members Panel */}
-         {showGroupMembers && (
-          <div className="fixed top-16 right-4 w-72 bg-white bg-opacity-75 backdrop-blur-md shadow-lg p-4 rounded-lg z-50">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-800">Group Members</h3>
-              <button
-                onClick={toggleGroupMembers}
-                className="text-gray-800 text-xl font-semibold"
-              >
-                &times;
-              </button>
-            </div>
-            {selectedChat ? (
-              <div>
-                <h4 className="font-semibold">Members:</h4>
-                <ul>
-                  {groupMembers.map((member) => (
-                    <li key={member.id} className="text-gray-700">{member.name}</li>
-                  ))}
-                </ul>
+                <FaChalkboard className="w-5 h-5" />
               </div>
-            ) : (
-              <p className="text-gray-600">Select a group to view members</p>
+            </Tooltip>
+            <Tooltip message="Voice Chat">
+              <div
+                onClick={() => setActiveTab("voice")}
+                className={`cursor-pointer p-2 rounded-full ${
+                  activeTab === "voice"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200"
+                } hover:bg-blue-600 transition-colors duration-200`}
+              >
+                <FaMicrophone className="w-5 h-5" />
+              </div>
+            </Tooltip>
+            <Tooltip message="Home">
+              <div
+                onClick={() => setActiveTab("default")}
+                className={`cursor-pointer p-2 rounded-full ${
+                  activeTab === "default"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200"
+                } hover:bg-blue-600 transition-colors duration-200`}
+              >
+                <FaHome className="w-5 h-5" />
+              </div>
+            </Tooltip>
+          </div>
+
+          {/* Right Icons */}
+          <div className="flex gap-4 items-center ml-auto">
+            <button
+              onClick={toggleGroupMembers}
+              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors duration-200"
+            >
+              <FaUsers
+                className="w-5 h-5"
+                color={showGroupMembers ? "#4A90E2" : "#6B7280"}
+              />
+            </button>
+            <button
+              onClick={toggleNotifications}
+              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors duration-200"
+            >
+              <FaBell
+                className="w-5 h-5"
+                color={showNotifications ? "#4A90E2" : "#6B7280"}
+              />
+            </button>
+            <button
+              onClick={toggleGroupDetails}
+              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors duration-200"
+            >
+              <FaInfoCircle
+                className="w-5 h-5"
+                color={showGroupDetails ? "#4A90E2" : "#6B7280"}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Dynamic Content */}
+          <div className="flex-1 min-w-0 bg-white overflow-hidden">
+            {activeTab === "whiteboard" && (
+              <div className="h-full w-full overflow-hidden">
+                <Whiteboard selectedChat={selectedChat} />
+              </div>
+            )}
+            {activeTab === "voice" && (
+              <div className="h-full flex items-center justify-center bg-gray-100">
+                <h2 className="text-2xl text-gray-600">
+                  Voice Chat Feature Coming Soon
+                </h2>
+              </div>
+            )}
+            {activeTab === "default" && (
+              <div className="h-full flex items-center justify-center bg-gray-100">
+                <h2 className="text-2xl text-gray-600">
+                  Welcome to Student Dashboard
+                </h2>
+              </div>
             )}
           </div>
-        )}
-      
-      
-  {/* Notifications Panel */}
-  {showNotifications && (
-          <div className="fixed top-16 right-4 w-72 max-h-[60vh] bg-white bg-opacity-75 backdrop-blur-md shadow-lg p-4 overflow-y-auto z-50 rounded-lg">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                Notifications
-              </h3>
-              <button
-                onClick={toggleNotifications}
-                className="text-gray-800 text-xl font-semibold"
-              >
-                &times;
-              </button>
-            </div>
-            <div>
-              {notifications && notifications.length > 0 ? (
-                notifications.map((notification) => (
-                  <NotificationItem
-                    key={notification._id}
-                    notification={notification}
-                    onStatusUpdate={handleNotificationUpdate}
-                  />
-                ))
-              ) : (
-                <p className="text-gray-500 text-center">No notifications found</p>
-              )}
-            </div>
-          </div>
-        )}
-      {/* Group Details Panel */}
-      {showGroupDetails && (
-  <div className="fixed top-0 right-0 w-80 h-screen bg-white shadow-2xl transform transition-transform duration-300 ease-out z-50 flex flex-col">
-    <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-      <h3 className="text-lg font-semibold text-gray-900">Group Details</h3>
-      <button 
-        onClick={() => setShowGroupDetails(false)}
-        className="p-2 hover:bg-gray-100 rounded-full"
-      >
-        <FaInfoCircle className="text-gray-600" />
-      </button>
-    </div>
 
-    {selectedChat ? (
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="p-6">
-          <div className="relative w-24 h-24 mx-auto mb-4">
-            <img
-              src={selectedChat.image || "https://via.placeholder.com/150"}
-              alt={selectedChat.name}
-              className="w-full h-full rounded-full object-cover ring-4 ring-white shadow-lg"
+          {/* Chat Area */}
+          <div className="w-[400px] border-l border-gray-200 flex-shrink-0 overflow-hidden">
+            <ChatArea
+              selectedChat={selectedChat}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              currentMessage={currentMessage}
+              setCurrentMessage={setCurrentMessage}
+              handleSendMessage={handleSendMessage}
+              userId={userId}
+              isTyping={isTyping}
+              messages={messages}
+              onlineUsers={onlineUsers}
             />
           </div>
-          <h2 className="text-xl font-bold text-center text-gray-900 mb-2">{selectedChat.name}</h2>
-          <p className="text-center text-gray-500 text-sm">{selectedChat.description}</p>
         </div>
+      </div>
 
-        {creatorDetails && (
-          <div className="p-6 border-t border-gray-100">
-            <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
-              <FaUsers className="text-blue-500" />
-              Created by
-            </h4>
-            <div className="group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all duration-200">
-              <div className="relative">
-                <img
-                  src={creatorDetails.image 
-                    ? `data:image/jpeg;base64,${btoa(
-                        new Uint8Array(creatorDetails.image.data).reduce(
-                          (data, byte) => data + String.fromCharCode(byte), ""
-                        )
-                      )}` 
-                    : "https://via.placeholder.com/150"}
-                  alt={creatorDetails.name}
-                  className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm"
-                />
-                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                  creatorDetails.status === 'online' ? 'bg-green-400' : 'bg-gray-300'
-                }`}></div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h5 className="font-medium text-gray-900 truncate">{creatorDetails.name}</h5>
-                <p className="text-sm text-gray-500">{creatorDetails.role}</p>
-              </div>
-              <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 hover:bg-blue-50 rounded-full">
-                <FaPaperPlane className="w-4 h-4 text-blue-500" />
-              </button>
-            </div>
+      {/* Modals and Overlays */}
+      {showGroupMembers && (
+        <div className="fixed top-16 right-4 w-72 bg-white bg-opacity-75 backdrop-blur-md shadow-lg p-4 rounded-lg z-50">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-800">
+              Group Members
+            </h3>
+            <button
+              onClick={toggleGroupMembers}
+              className="text-gray-800 hover:text-gray-600"
+            >
+              <FaTimes className="w-5 h-5" />
+            </button>
           </div>
-        )}
-
-        <div className="p-6 border-t border-gray-100">
-          <h4 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
-            <FaUsers className="text-blue-500" />
-            Members ({groupMembers.length})
-          </h4>
-
-          <div className="space-y-3">
-            {groupMembers.map((member) => (
-              <div 
-                key={member.id}
-                className="group flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all duration-200"
-              >
-                <div className="relative">
+          {selectedChat ? (
+            <div className="space-y-2">
+              {groupMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg"
+                >
                   <img
-                    src={member.image 
-                      ? `data:image/jpeg;base64,${btoa(
-                          new Uint8Array(member.image.data).reduce(
-                            (data, byte) => data + String.fromCharCode(byte), ""
-                          )
-                        )}` 
-                      : "https://via.placeholder.com/150"}
+                    src={member.image || "https://via.placeholder.com/40"}
                     alt={member.name}
-                    className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm"
+                    className="w-10 h-10 rounded-full object-cover"
                   />
-                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                    member.status === 'online' ? 'bg-green-400' : 'bg-gray-300'
-                  }`}></div>
+                  <div>
+                    <p className="font-medium text-gray-800">{member.name}</p>
+                    <p className="text-sm text-gray-500">{member.role}</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h5 className="font-medium text-gray-900 truncate">{member.name}</h5>
-                  <p className="text-sm text-gray-500">{member.role}</p>
-                </div>
-                <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 hover:bg-blue-50 rounded-full">
-                  <FaPaperPlane className="w-4 h-4 text-blue-500" />
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-center">
+              Select a group to view members
+            </p>
+          )}
         </div>
-      </div>
-    ) : (
-      <div className="p-6">
-        <p className="text-gray-600 text-center">Select a group to view details</p>
-      </div>
-    )}
-
-    <div className="p-4 border-t border-gray-100">
-      <button 
-        onClick={() => setShowInviteModal(true)} 
-        className="w-full py-2 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-      >
-        Invite Group
-      </button>
-    </div>
-  </div>
-)}
-
-
-
-       {/* Chat Area */}
-       <ChatArea
-          selectedChat={selectedChat}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          currentMessage={currentMessage}
-          setCurrentMessage={setCurrentMessage}
-          handleSendMessage={handleSendMessage}
-          userId={userId}
-        />
-      </div>
-
-      {showInviteModal && selectedChat && (
-        <InviteGroupModal
-          groupId={selectedChat._id}
-          onClose={() => setShowInviteModal(false)}
-        />
       )}
 
+      {/* Notifications Panel */}
+      {showNotifications && (
+        <div className="fixed top-16 right-4 w-72 max-h-[60vh] bg-white bg-opacity-75 backdrop-blur-md shadow-lg p-4 rounded-lg z-50 overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-800">
+              Notifications
+            </h3>
+            <button
+              onClick={toggleNotifications}
+              className="text-gray-800 hover:text-gray-600"
+            >
+              <FaTimes className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {notifications.length > 0 ? (
+              notifications.map((notification) => (
+                <NotificationItem
+                  key={notification._id}
+                  notification={notification}
+                  onStatusUpdate={handleNotificationUpdate}
+                />
+              ))
+            ) : (
+              <p className="text-gray-500 text-center">
+                No notifications found
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Group Details Panel */}
+      {showGroupDetails && selectedChat && (
+        <div className="fixed right-0 top-0 h-screen w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-out z-50 flex flex-col">
+          <div className="p-4 border-b flex justify-between items-center">
+            <h3 className="text-xl font-semibold text-gray-800">
+              Group Details
+            </h3>
+            <button
+              onClick={toggleGroupDetails}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              <FaTimes className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              <div className="relative w-24 h-24 mx-auto mb-4">
+                <img
+                  src={selectedChat.image || "https://via.placeholder.com/150"}
+                  alt={selectedChat.name}
+                  className="w-full h-full rounded-full object-cover ring-4 ring-white shadow-lg"
+                />
+              </div>
+              <h2 className="text-xl font-bold text-center text-gray-900 mb-2">
+                {selectedChat.name}
+              </h2>
+              <p className="text-center text-gray-500">
+                {selectedChat.description}
+              </p>
+            </div>
+
+            {creatorDetails && (
+              <div className="p-6 border-t">
+                <h4 className="font-semibold text-gray-900 mb-4">Created by</h4>
+                <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50">
+                  <img
+                    src={creatorDetails.image || "https://via.placeholder.com/48"}
+                    alt={creatorDetails.name}
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm"
+                  />
+                  <div>
+                    <h5 className="font-medium text-gray-900">
+                      {creatorDetails.name}
+                    </h5>
+                    <p className="text-sm text-gray-500">
+                      {creatorDetails.role}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="p-6 border-t">
+              <h4 className="font-semibold text-gray-900 mb-4">
+                Members ({groupMembers.length})
+              </h4>
+              <div className="space-y-3">
+                {groupMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50"
+                  >
+                    <img
+                      src={member.image || "https://via.placeholder.com/48"}
+                      alt={member.name}
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-white shadow-sm"
+                    />
+                    <div>
+                      <h5 className="font-medium text-gray-900">
+                        {member.name}
+                      </h5>
+                      <p className="text-sm text-gray-500">{member.role}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 border-t">
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center gap-2"
+            >
+              <FaUserPlus className="w-5 h-5" />
+              <span>Invite Members</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
       {modalOpen && (
         <Modal
           onClose={() => setModalOpen(false)}
@@ -665,8 +747,25 @@ const Tooltip = ({ children, message }) => {
           onSubmit={handleAddGroup}
         />
       )}
-      <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} closeOnClick pauseOnHover draggable pauseOnFocusLoss />
+
+      {showInviteModal && selectedChat && (
+        <InviteGroupModal
+          groupId={selectedChat._id}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
+
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+        pauseOnFocusLoss
+      />
     </div>
   );
 };
+
 export default StudentDashboard;

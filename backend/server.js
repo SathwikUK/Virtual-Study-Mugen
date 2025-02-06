@@ -41,57 +41,105 @@ app.use("/api/admin", adminRoutes);
 
 // API to send a message
 app.post("/api/messages", async (req, res) => {
-    try {
-      const { groupId, senderId, message, fileUrl } = req.body;
-  
-      if (!senderId) {
-        return res.status(400).json({ error: "Sender ID is required." });
-      }
-  
-      // Check if sender exists
-      const sender = await User.findById(senderId);
-      if (!sender) {
-        return res.status(404).json({ error: "Sender not found." });
-      }
-  
-      // Check if sender is a member of the group
-      const group = await Group.findById(groupId);
-      if (!group || !group.members.includes(senderId)) {
-        return res.status(403).json({ error: "User is not a member of this group." });
-      }
-  
-      // Save the message
-      const newMessage = new Message({ groupId, senderId, message, fileUrl });
-      await newMessage.save();
-  
-      // Emit message via Socket.io
-      io.to(groupId).emit("newMessage", newMessage);
-      res.status(201).json(newMessage);
-    } catch (error) {
-      console.error("Error saving message:", error);
-      res.status(500).json({ error: "Failed to send message." });
+  try {
+    const { groupId, senderId, message, fileUrl } = req.body;
+
+    if (!senderId) {
+      return res.status(400).json({ error: "Sender ID is required." });
     }
-  });
-  
+
+    // Check if sender exists
+    const sender = await User.findById(senderId);
+    if (!sender) {
+      return res.status(404).json({ error: "Sender not found." });
+    }
+
+    // Check if sender is a member of the group
+    const group = await Group.findById(groupId);
+    if (!group || !group.members.includes(senderId)) {
+      return res.status(403).json({ error: "User is not a member of this group." });
+    }
+
+    // Save the message
+    const newMessage = new Message({ groupId, senderId, message, fileUrl });
+    await newMessage.save();
+
+    // Emit message via Socket.io
+    io.to(groupId).emit("newMessage", newMessage);
+    res.status(201).json(newMessage);
+  } catch (error) {
+    console.error("Error saving message:", error);
+    res.status(500).json({ error: "Failed to send message." });
+  }
+});
+
+// Add this to your server.js file
+app.put("/api/messages/:messageId", async (req, res) => {
+  try {
+    const { message } = req.body;
+    const updatedMessage = await Message.findByIdAndUpdate(
+      req.params.messageId,
+      { 
+        message,
+        edited: true 
+      },
+      { new: true }
+    ).populate("senderId", "name");
+    
+    if (!updatedMessage) {
+      return res.status(404).json({ error: "Message not found" });
+    }
+
+    // Emit the edited message to all clients in the group
+    io.to(updatedMessage.groupId).emit("messageEdited", updatedMessage);
+    
+    res.status(200).json(updatedMessage);
+  } catch (error) {
+    console.error("Error editing message:", error);
+    res.status(500).json({ error: "Failed to edit message" });
+  }
+});
+
+
 // API to fetch messages for a group
 app.get("/api/messages/:groupId", async (req, res) => {
-    try {
-        const messages = await Message.find({ groupId: req.params.groupId })
-        .populate("senderId", "name")  // This should work if 'senderId' refers to 'studentUser' model
-        .sort({ timestamp: 1 });
-      
-  
-      if (!messages) {
-        console.log(`No messages found for group: ${req.params.groupId}`);
-      }
-      
-      res.status(200).json(messages);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-      res.status(500).json({ error: "Failed to fetch messages" });
+  try {
+    const messages = await Message.find({ groupId: req.params.groupId })
+      .populate("senderId", "name")
+      .sort({ timestamp: 1 });
+
+    if (!messages) {
+      console.log(`No messages found for group: ${req.params.groupId}`);
     }
-  });
-  
+    
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
+});
+
+// API to delete a message
+app.delete("/api/messages/:messageId", async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId);
+    
+    if (!message) {
+      return res.status(404).json({ error: "Message not found" });
+    }
+
+    await Message.findByIdAndDelete(req.params.messageId);
+    
+    // Emit deletion event to all clients in the group
+    io.to(message.groupId).emit("messageDeleted", req.params.messageId);
+    
+    res.status(200).json({ message: "Message deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting message:", error);
+    res.status(500).json({ error: "Failed to delete message" });
+  }
+});
+
 // API to upload a file
 app.post("/api/upload", upload.single("file"), (req, res) => {
   res.json({ fileUrl: `http://localhost:5000/${req.file.filename}` });
