@@ -16,7 +16,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: { origin: "*" },
-  maxHttpBufferSize: 1e8 // 100 MB max file size
+  maxHttpBufferSize: 1e8,
+  pingTimeout: 60000,
 });
 
 // Middleware
@@ -29,7 +30,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: 50 * 1024 * 1024,
   }
 });
 
@@ -79,7 +80,6 @@ app.post("/api/messages", async (req, res) => {
 
     await newMessage.save();
 
-    // Convert buffer back to base64 for socket transmission
     const messageToSend = newMessage.toObject();
     if (messageToSend.fileData) {
       messageToSend.fileData.data = messageToSend.fileData.data.toString('base64');
@@ -120,7 +120,6 @@ app.get("/api/messages/:groupId", async (req, res) => {
       .populate("senderId", "name")
       .sort({ timestamp: 1 });
 
-    // Convert buffer to base64 for transmission
     const messagesToSend = messages.map(msg => {
       const msgObj = msg.toObject();
       if (msgObj.fileData && msgObj.fileData.data) {
@@ -187,9 +186,31 @@ io.on("connection", (socket) => {
 
   socket.on("joinGroup", (groupId) => {
     socket.join(groupId);
+    console.log(`User joined group: ${groupId}`);
   });
 
-  socket.on("disconnect", () => console.log("User disconnected"));
+  socket.on("leaveGroup", (groupId) => {
+    if (groupId) {
+      socket.leave(groupId);
+      console.log(`User left group: ${groupId}`);
+    }
+  });
+
+  socket.on("sendMessage", (message) => {
+    socket.to(message.groupId).emit("newMessage", message);
+  });
+
+  socket.on("messageDeleted", (messageId) => {
+    socket.broadcast.emit("messageDeleted", messageId);
+  });
+
+  socket.on("messageEdited", (editedMessage) => {
+    socket.broadcast.emit("messageEdited", editedMessage);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
 });
 
 const PORT = process.env.PORT || 5000;

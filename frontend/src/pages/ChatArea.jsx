@@ -19,7 +19,13 @@ import axios from "axios";
 import { Menu, Item, useContextMenu } from "react-contexify";
 import "react-contexify/dist/ReactContexify.css";
 
-const socket = io("http://localhost:5000");
+const socket = io("http://localhost:5000", {
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  reconnectionAttempts: Infinity,
+});
+
 const MENU_ID = "message-context-menu";
 
 const ChatArea = ({ selectedChat, userId, currentUser }) => {
@@ -38,7 +44,6 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     id: MENU_ID,
   });
 
-  // Scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -52,11 +57,14 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
       socket.emit("joinGroup", selectedChat._id);
       fetchMessages();
     }
-    return () => setShowEmojiPicker(false);
+    return () => {
+      socket.emit("leaveGroup", selectedChat?._id);
+      setShowEmojiPicker(false);
+    };
   }, [selectedChat]);
 
   useEffect(() => {
-    socket.on("newMessage", (newMsg) => {
+    const handleNewMessage = (newMsg) => {
       setMessages((prev) => {
         const messageExists = prev.some((msg) => msg._id === newMsg._id);
         if (!messageExists) {
@@ -64,19 +72,32 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
         }
         return prev;
       });
-    });
+      setFilteredMessages((prev) => {
+        const messageExists = prev.some((msg) => msg._id === newMsg._id);
+        if (!messageExists) {
+          return [...prev, newMsg];
+        }
+        return prev;
+      });
+    };
 
-    socket.on("messageDeleted", (deletedMessageId) => {
+    const handleMessageDeleted = (deletedMessageId) => {
       setMessages((prev) => prev.filter((msg) => msg._id !== deletedMessageId));
-    });
+      setFilteredMessages((prev) =>
+        prev.filter((msg) => msg._id !== deletedMessageId)
+      );
+    };
 
-    socket.on("messageEdited", (editedMessage) => {
+    const handleMessageEdited = (editedMessage) => {
       setMessages((prev) =>
         prev.map((msg) => (msg._id === editedMessage._id ? editedMessage : msg))
       );
-    });
+      setFilteredMessages((prev) =>
+        prev.map((msg) => (msg._id === editedMessage._id ? editedMessage : msg))
+      );
+    };
 
-    socket.on("messageRead", ({ messageId, readBy }) => {
+    const handleMessageRead = ({ messageId, readBy }) => {
       setMessageStatuses((prev) => ({
         ...prev,
         [messageId]: {
@@ -84,13 +105,18 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
           readBy: [...(prev[messageId]?.readBy || []), readBy],
         },
       }));
-    });
+    };
+
+    socket.on("newMessage", handleNewMessage);
+    socket.on("messageDeleted", handleMessageDeleted);
+    socket.on("messageEdited", handleMessageEdited);
+    socket.on("messageRead", handleMessageRead);
 
     return () => {
-      socket.off("newMessage");
-      socket.off("messageDeleted");
-      socket.off("messageEdited");
-      socket.off("messageRead");
+      socket.off("newMessage", handleNewMessage);
+      socket.off("messageDeleted", handleMessageDeleted);
+      socket.off("messageEdited", handleMessageEdited);
+      socket.off("messageRead", handleMessageRead);
     };
   }, []);
 
@@ -173,7 +199,11 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     };
 
     try {
-      await axios.post("http://localhost:5000/api/messages", newMessage);
+      const response = await axios.post(
+        "http://localhost:5000/api/messages",
+        newMessage
+      );
+      socket.emit("sendMessage", response.data);
       setMessage("");
       setShowEmojiPicker(false);
     } catch (error) {
@@ -182,7 +212,7 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
   };
 
   const handleDownload = (dataUrl, fileName) => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = dataUrl;
     link.download = fileName;
     document.body.appendChild(link);
@@ -213,9 +243,15 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
       await axios.delete(
         `http://localhost:5000/api/messages/${args.props.messageId}`
       );
+      // Update local state immediately for the user performing the delete
       setMessages((prev) =>
         prev.filter((msg) => msg._id !== args.props.messageId)
       );
+      setFilteredMessages((prev) =>
+        prev.filter((msg) => msg._id !== args.props.messageId)
+      );
+      // Emit socket event for other users
+      socket.emit("messageDeleted", args.props.messageId);
     } catch (error) {
       console.error("Error deleting message:", error);
     }
@@ -238,11 +274,15 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
         `http://localhost:5000/api/messages/${messageId}`,
         { message: editMessage }
       );
-
+      // Update local state immediately for the user performing the edit
       setMessages((prev) =>
         prev.map((msg) => (msg._id === messageId ? response.data : msg))
       );
-
+      setFilteredMessages((prev) =>
+        prev.map((msg) => (msg._id === messageId ? response.data : msg))
+      );
+      // Emit socket event for other users
+      socket.emit("messageEdited", response.data);
       setEditingMessageId(null);
       setEditMessage("");
     } catch (error) {
@@ -255,7 +295,7 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     if (!status) return "sent";
 
     const readCount = status.readBy?.length || 0;
-    const totalMembers = selectedChat.members.length - 1; // Excluding sender
+    const totalMembers = selectedChat.members.length - 1;
 
     if (readCount === 0) return "sent";
     if (readCount < totalMembers) return "delivered";
@@ -289,7 +329,8 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
-        year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
+        year:
+          date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
       });
     }
   };
@@ -306,7 +347,7 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
 
     const base64Data = `data:${fileData.contentType};base64,${fileData.data}`;
 
-    if (fileData.contentType.startsWith('image/')) {
+    if (fileData.contentType.startsWith("image/")) {
       return (
         <div className="relative group">
           <img
@@ -334,7 +375,7 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{fileData.fileName}</p>
           <p className="text-xs text-gray-500">
-            {fileData.contentType.split('/')[1].toUpperCase()}
+            {fileData.contentType.split("/")[1].toUpperCase()}
           </p>
         </div>
         <button
@@ -383,11 +424,13 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
               const messageSenderId = msg.senderId._id || msg.senderId;
               const currentUserId = userId || localStorage.getItem("userId");
               const isOwnMessage = messageSenderId === currentUserId;
-              const senderName = msg.senderId.name || msg.senderName || "Unknown";
+              const senderName =
+                msg.senderId.name || msg.senderName || "Unknown";
               const messageDate = formatDate(msg.timestamp);
               const showDateHeader =
                 index === 0 ||
-                formatDate(filteredMessages[index - 1].timestamp) !== messageDate;
+                formatDate(filteredMessages[index - 1].timestamp) !==
+                  messageDate;
 
               return (
                 <React.Fragment key={msg._id || index}>
