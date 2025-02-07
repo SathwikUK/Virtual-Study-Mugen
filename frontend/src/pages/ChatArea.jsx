@@ -1,17 +1,28 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Send, Trash2, Edit, Check, X, Smile, Paperclip, Download, File } from "lucide-react";
+import {
+  Send,
+  Trash2,
+  Edit,
+  Check,
+  X,
+  Smile,
+  Paperclip,
+  Download,
+  File,
+  Search,
+} from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import io from "socket.io-client";
 import axios from "axios";
 import { Menu, Item, useContextMenu } from "react-contexify";
 import "react-contexify/dist/ReactContexify.css";
-
 const socket = io("http://localhost:5000");
 const MENU_ID = "message-context-menu";
-
 const ChatArea = ({ selectedChat, userId, currentUser }) => {
   const [messages, setMessages] = useState([]);
+  const [filteredMessages, setFilteredMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editMessage, setEditMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -20,7 +31,6 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
   const { show } = useContextMenu({
     id: MENU_ID,
   });
-
   useEffect(() => {
     if (selectedChat) {
       socket.emit("joinGroup", selectedChat._id);
@@ -28,7 +38,6 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     }
     return () => setShowEmojiPicker(false);
   }, [selectedChat]);
-
   useEffect(() => {
     socket.on("newMessage", (newMsg) => {
       setMessages((prev) => {
@@ -39,55 +48,70 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
         return prev;
       });
     });
-
     socket.on("messageDeleted", (deletedMessageId) => {
       setMessages((prev) => prev.filter((msg) => msg._id !== deletedMessageId));
     });
-
     socket.on("messageEdited", (editedMessage) => {
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg._id === editedMessage._id ? editedMessage : msg
-        )
+        prev.map((msg) => (msg._id === editedMessage._id ? editedMessage : msg))
       );
     });
-
     return () => {
       socket.off("newMessage");
       socket.off("messageDeleted");
       socket.off("messageEdited");
     };
   }, []);
+  // New effect for search functionality
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredMessages(messages);
+    } else {
+      const filtered = messages.filter((msg) => {
+        const messageText = msg.message?.toLowerCase() || "";
+        const senderName = (
+          msg.senderId.name ||
+          msg.senderName ||
+          ""
+        )?.toLowerCase();
+        const fileName = (msg.fileName || "")?.toLowerCase();
+        const searchLower = searchQuery.toLowerCase();
 
+        return (
+          messageText.includes(searchLower) ||
+          senderName.includes(searchLower) ||
+          fileName.includes(searchLower)
+        );
+      });
+      setFilteredMessages(filtered);
+    }
+  }, [searchQuery, messages]);
   const fetchMessages = async () => {
     try {
       const response = await axios.get(
         `http://localhost:5000/api/messages/${selectedChat._id}`
       );
       setMessages(response.data);
+      setFilteredMessages(response.data);
     } catch (error) {
       console.error("Error loading messages:", error.response || error);
     }
   };
-
   const handleSendMessage = async (fileUrl = null, fileName = null) => {
     if (!message.trim() && !fileUrl) return;
-
     const senderId = userId || localStorage.getItem("userId");
     if (!senderId) {
       console.error("Error: senderId not found.");
       return;
     }
-
-    const newMessage = { 
-      groupId: selectedChat._id, 
-      senderId, 
+    const newMessage = {
+      groupId: selectedChat._id,
+      senderId,
       message: message.trim(),
       fileUrl,
       fileName,
-      senderName: currentUser?.name 
+      senderName: currentUser?.name,
     };
-
     try {
       await axios.post("http://localhost:5000/api/messages", newMessage);
       setMessage("");
@@ -96,17 +120,17 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
       console.error("Error sending message:", error);
     }
   };
-
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       setUploading(true);
-      const response = await axios.post("http://localhost:5000/api/upload", formData);
+      const response = await axios.post(
+        "http://localhost:5000/api/upload",
+        formData
+      );
       await handleSendMessage(response.data.fileUrl, file.name);
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -117,93 +141,86 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
       }
     }
   };
-
   const handleDownload = async (fileUrl, fileName) => {
     try {
       const response = await axios.get(fileUrl, {
-        responseType: 'blob'
+        responseType: "blob",
       });
-      
+
       const blob = new Blob([response.data]);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = window.URL.createObjectURL(blob);
-      link.download = fileName || 'downloaded-file';
-      
+      link.download = fileName || "downloaded-file";
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       window.URL.revokeObjectURL(link.href);
     } catch (error) {
-      console.error('Error downloading file:', error);
+      console.error("Error downloading file:", error);
     }
   };
-
   const onEmojiClick = (emojiObject) => {
     setMessage((prevMessage) => prevMessage + emojiObject.emoji);
   };
-
   const handleContextMenu = (e, message) => {
     e.preventDefault();
     const currentUserId = userId || localStorage.getItem("userId");
-    if (message.senderId._id === currentUserId || message.senderId === currentUserId) {
+    if (
+      message.senderId._id === currentUserId ||
+      message.senderId === currentUserId
+    ) {
       show({
         event: e,
         props: { messageId: message._id, senderId: message.senderId },
       });
     }
   };
-
   const handleDeleteMessage = async (args) => {
     try {
       await axios.delete(
         `http://localhost:5000/api/messages/${args.props.messageId}`
       );
-      setMessages((prev) => prev.filter((msg) => msg._id !== args.props.messageId));
+      setMessages((prev) =>
+        prev.filter((msg) => msg._id !== args.props.messageId)
+      );
     } catch (error) {
       console.error("Error deleting message:", error);
     }
   };
-
   const startEditing = (messageId, currentMessage) => {
     setEditingMessageId(messageId);
     setEditMessage(currentMessage);
   };
-
   const cancelEditing = () => {
     setEditingMessageId(null);
     setEditMessage("");
   };
-
   const handleEditMessage = async (messageId) => {
     if (!editMessage.trim()) return;
-
     try {
       const response = await axios.put(
         `http://localhost:5000/api/messages/${messageId}`,
         { message: editMessage }
       );
-      
+
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg._id === messageId ? response.data : msg
-        )
+        prev.map((msg) => (msg._id === messageId ? response.data : msg))
       );
-      
+
       setEditingMessageId(null);
       setEditMessage("");
     } catch (error) {
       console.error("Error editing message:", error);
     }
   };
-
   const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
-
   const getFileIcon = (fileUrl) => {
     if (fileUrl.match(/\.(jpg|jpeg|png|gif)$/i)) {
       return null; // We'll show the image preview instead
@@ -216,48 +233,71 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     }
     return "FILE";
   };
-
   const getFileName = (fileUrl) => {
-    const urlParts = fileUrl.split('/');
+    const urlParts = fileUrl.split("/");
     const fullName = urlParts[urlParts.length - 1];
-    const nameParts = fullName.split('-');
+    const nameParts = fullName.split("-");
     // Remove the timestamp prefix
     nameParts.shift();
-    return nameParts.join('-');
+    return nameParts.join("-");
   };
-
   return (
     <div className="flex flex-col h-full bg-gray-100">
       {selectedChat ? (
         <>
-          <div className="p-4 bg-white shadow-md flex items-center sticky top-0 z-10">
-            <img
-              src={selectedChat.image}
-              alt="Group"
-              className="w-10 h-10 rounded-full mr-3"
-            />
-            <h2 className="text-xl font-semibold text-gray-800">{selectedChat.name}</h2>
-          </div>
+          <div className="p-4 bg-white shadow-md flex flex-col gap-3 sticky top-0 z-10">
+            <div className="flex items-center">
+              <img
+                src={selectedChat.image}
+                alt="Group"
+                className="w-10 h-10 rounded-full mr-3"
+              />
+              <h2 className="text-xl font-semibold text-gray-800">
+                {selectedChat.name}
+              </h2>
+            </div>
 
+            {/* Search Bar */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search messages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={18}
+              />
+            </div>
+          </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.map((msg, index) => {
+            {filteredMessages.map((msg, index) => {
               const messageSenderId = msg.senderId._id || msg.senderId;
               const currentUserId = userId || localStorage.getItem("userId");
               const isOwnMessage = messageSenderId === currentUserId;
-              const senderName = msg.senderId.name || msg.senderName || "Unknown";
-
+              const senderName =
+                msg.senderId.name || msg.senderName || "Unknown";
               return (
                 <div
                   key={msg._id || index}
-                  className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} group`}
+                  className={`flex ${
+                    isOwnMessage ? "justify-end" : "justify-start"
+                  } group`}
                   onContextMenu={(e) => handleContextMenu(e, msg)}
                 >
-                  <div className={`max-w-[70%] ${isOwnMessage ? "items-end" : "items-start"}`}>
+                  <div
+                    className={`max-w-[70%] ${
+                      isOwnMessage ? "items-end" : "items-start"
+                    }`}
+                  >
                     <div
                       className={`relative px-4 py-2 rounded-lg shadow-sm
-                        ${isOwnMessage 
-                          ? "bg-blue-500 text-white rounded-br-none" 
-                          : "bg-white text-gray-800 rounded-bl-none"
+                        ${
+                          isOwnMessage
+                            ? "bg-blue-500 text-white rounded-br-none"
+                            : "bg-white text-gray-800 rounded-bl-none"
                         }`}
                     >
                       {!isOwnMessage && (
@@ -295,14 +335,20 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
                             <div className="mb-2">
                               {msg.fileUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
                                 <div className="relative group">
-                                  <img 
-                                    src={msg.fileUrl} 
+                                  <img
+                                    src={msg.fileUrl}
                                     alt="Uploaded content"
                                     className="max-w-full rounded-lg cursor-pointer"
                                   />
                                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
-                                      onClick={() => handleDownload(msg.fileUrl, msg.fileName || getFileName(msg.fileUrl))}
+                                      onClick={() =>
+                                        handleDownload(
+                                          msg.fileUrl,
+                                          msg.fileName ||
+                                            getFileName(msg.fileUrl)
+                                        )
+                                      }
                                       className="p-2 bg-gray-800 bg-opacity-75 rounded-full text-white hover:bg-opacity-100"
                                     >
                                       <Download size={16} />
@@ -323,7 +369,12 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
                                     </p>
                                   </div>
                                   <button
-                                    onClick={() => handleDownload(msg.fileUrl, msg.fileName || getFileName(msg.fileUrl))}
+                                    onClick={() =>
+                                      handleDownload(
+                                        msg.fileUrl,
+                                        msg.fileName || getFileName(msg.fileUrl)
+                                      )
+                                    }
                                     className="p-2 text-blue-500 hover:text-blue-600"
                                   >
                                     <Download size={20} />
@@ -332,13 +383,25 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
                               )}
                             </div>
                           )}
-                          {msg.message && <p className="text-sm break-words">{msg.message}</p>}
+                          {msg.message && (
+                            <p className="text-sm break-words">{msg.message}</p>
+                          )}
                           <div className="flex items-center gap-1 mt-1 text-xs">
-                            <span className={isOwnMessage ? "text-blue-100" : "text-gray-500"}>
+                            <span
+                              className={
+                                isOwnMessage ? "text-blue-100" : "text-gray-500"
+                              }
+                            >
                               {formatTimestamp(msg.timestamp)}
                             </span>
                             {msg.edited && (
-                              <span className={isOwnMessage ? "text-blue-100" : "text-gray-500"}>
+                              <span
+                                className={
+                                  isOwnMessage
+                                    ? "text-blue-100"
+                                    : "text-gray-500"
+                                }
+                              >
                                 • edited
                               </span>
                             )}
@@ -351,7 +414,6 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
               );
             })}
           </div>
-
           <div className="p-4 bg-white border-t relative">
             {showEmojiPicker && (
               <div className="absolute bottom-full right-4 mb-2">
@@ -390,7 +452,9 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder={uploading ? "Uploading file..." : "Type a message..."}
+                placeholder={
+                  uploading ? "Uploading file..." : "Type a message..."
+                }
                 className="flex-1 p-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={uploading}
               />
@@ -403,9 +467,15 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
               </button>
             </div>
           </div>
-
           <Menu id={MENU_ID}>
-            <Item onClick={({ props }) => startEditing(props.messageId, messages.find(m => m._id === props.messageId)?.message)}>
+            <Item
+              onClick={({ props }) =>
+                startEditing(
+                  props.messageId,
+                  messages.find((m) => m._id === props.messageId)?.message
+                )
+              }
+            >
               <Edit className="mr-2" size={16} />
               Edit Message
             </Item>
@@ -423,5 +493,4 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     </div>
   );
 };
-
 export default ChatArea;
