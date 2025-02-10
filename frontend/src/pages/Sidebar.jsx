@@ -7,6 +7,7 @@ import {
   FaUserCircle,
   FaArrowLeft,
   FaSearch,
+  FaCircle,
 } from "react-icons/fa";
 
 const Sidebar = ({ isOpen, onToggle, onSelectChat, chats, setModalOpen }) => {
@@ -53,7 +54,6 @@ const Sidebar = ({ isOpen, onToggle, onSelectChat, chats, setModalOpen }) => {
   );
 
   const handleChatSelection = (chat) => {
-    console.log("Selected Chat ID:", chat._id);
     onSelectChat(chat);
   };
 
@@ -90,21 +90,19 @@ const Sidebar = ({ isOpen, onToggle, onSelectChat, chats, setModalOpen }) => {
           <div className="flex-1 overflow-y-auto chat-scrollbar">
             <ul className={!isOpen ? "flex-col space-y-2" : ""}>
               {filteredChats.length > 0 ? (
-                filteredChats.map((chat, index) => (
+                filteredChats.map((chat) => (
                   <li
-                    key={chat.id || index}
+                    key={chat._id}
                     className="p-2 mb-2 rounded cursor-pointer hover:bg-gray-200 flex items-center gap-2 border-b border-gray-400 opacity-60"
                     onClick={() => handleChatSelection(chat)}
                   >
                     <div className="w-10 h-10 relative">
-                      {chat.isLive && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                      )}
+                      
                       <img src={chat.image} alt={chat.name} className="w-10 h-10 rounded-full object-cover" />
                     </div>
                     <div>
                       <p className="font-bold">{chat.name}</p>
-                      <p className="text-sm text-gray-600">{chat.message}</p>
+                      <p className="text-sm text-gray-600">{chat.lastMessage}</p>
                     </div>
                   </li>
                 ))
@@ -126,7 +124,7 @@ const Sidebar = ({ isOpen, onToggle, onSelectChat, chats, setModalOpen }) => {
             <FaUserCircle className="text-gray-500 text-3xl" />
           )}
         </div>
-        <div className="text-black font-medium">{userName}</div>
+        {isOpen && <div className="text-black font-medium">{userName}</div>}
       </div>
     </div>
   );
