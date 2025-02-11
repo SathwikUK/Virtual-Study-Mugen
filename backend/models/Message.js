@@ -11,7 +11,8 @@ const MessageSchema = new mongoose.Schema({
   },
   timestamp: { type: Date, default: Date.now },
   edited: { type: Boolean, default: false },
-  senderName: { type: String }
+  senderName: { type: String },
+  readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "studentUser" }] // Add readBy array
 });
 
 module.exports = mongoose.model("Message", MessageSchema);

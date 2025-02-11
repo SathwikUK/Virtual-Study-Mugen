@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Download, File, Check, X } from "lucide-react";
 
 const MessageList = ({
@@ -14,6 +14,13 @@ const MessageList = ({
   userId,
   messageStatuses,
 }) => {
+  const messagesEndRef = useRef(null);
+
+  // Scroll to the latest message when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [filteredMessages]);
+
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
     const today = new Date();
@@ -28,8 +35,7 @@ const MessageList = ({
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
-        year:
-          date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
+        year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
       });
     }
   };
@@ -150,18 +156,13 @@ const MessageList = ({
                 } group`}
                 onContextMenu={(e) => handleContextMenu(e, msg)}
               >
-                <div
-                  className={`max-w-[70%] ${
-                    isOwnMessage ? "items-end" : "items-start"
-                  }`}
-                >
+                <div className={`max-w-[70%] ${isOwnMessage ? "items-end" : "items-start"}`}>
                   <div
-                    className={`relative px-4 py-2 rounded-lg shadow-sm
-                      ${
-                        isOwnMessage
-                          ? "bg-blue-500 text-white rounded-br-none"
-                          : "bg-white text-gray-800 rounded-bl-none"
-                      }`}
+                    className={`relative px-4 py-2 rounded-lg shadow-sm ${
+                      isOwnMessage
+                        ? "bg-blue-500 text-white rounded-br-none"
+                        : "bg-white text-gray-800 rounded-bl-none"
+                    }`}
                   >
                     {!isOwnMessage && (
                       <div className="text-xs font-medium text-blue-600 mb-1">
@@ -195,29 +196,13 @@ const MessageList = ({
                     ) : (
                       <>
                         {msg.fileData && renderFileContent(msg.fileData)}
-                        {msg.message && (
-                          <p className="text-sm break-words">{msg.message}</p>
-                        )}
+                        {msg.message && <p className="text-sm break-words">{msg.message}</p>}
                         <div className="flex items-center gap-2 mt-1 text-xs">
-                          <span
-                            className={
-                              isOwnMessage ? "text-blue-100" : "text-gray-500"
-                            }
-                          >
+                          <span className={isOwnMessage ? "text-blue-100" : "text-gray-500"}>
                             {formatTimestamp(msg.timestamp)}
                           </span>
-                          {msg.edited && (
-                            <span
-                              className={
-                                isOwnMessage ? "text-blue-100" : "text-gray-500"
-                              }
-                            >
-                              • edited
-                            </span>
-                          )}
-                          {isOwnMessage && (
-                            <MessageStatus status={getMessageStatus(msg)} />
-                          )}
+                          {msg.edited && <span className="text-gray-500">• edited</span>}
+                          {isOwnMessage && <MessageStatus status={getMessageStatus(msg)} />}
                         </div>
                       </>
                     )}
@@ -227,12 +212,8 @@ const MessageList = ({
             </React.Fragment>
           );
         })}
+        <div ref={messagesEndRef} />
       </div>
-      {!selectedChat && (
-        <div className="flex-1 flex items-center justify-center text-gray-500">
-          Select a chat to start messaging
-        </div>
-      )}
     </div>
   );
 };

@@ -183,6 +183,13 @@ app.delete("/api/messages/:messageId", async (req, res) => {
 // Socket.io Connection
 io.on("connection", (socket) => {
   console.log("New client connected");
+  let currentUser = null;
+
+  socket.on("setUser", (userId) => {
+    currentUser = userId;
+    socket.join(`user_${userId}`);
+    console.log(`User ${userId} connected`);
+  });
 
   socket.on("joinGroup", (groupId) => {
     socket.join(groupId);
@@ -196,22 +203,87 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("sendMessage", (message) => {
-    socket.to(message.groupId).emit("newMessage", message);
+  socket.on("sendMessage", async (message) => {
+    try {
+      const newMessage = new Message({
+        ...message,
+        readBy: [message.senderId] // Mark as read by sender
+      });
+      await newMessage.save();
+      
+      // Broadcast to all users in the group
+      socket.to(message.groupId).emit("newMessage", newMessage);
+      
+      // Get group members
+      const group = await Group.findById(message.groupId);
+      if (group) {
+        // Emit unreadMessage event to all group members except sender
+        group.members.forEach(memberId => {
+          if (memberId.toString() !== message.senderId.toString()) {
+            io.to(`user_${memberId}`).emit("newMessage", newMessage);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error handling message:", error);
+    }
   });
 
-  socket.on("messageDeleted", (messageId) => {
-    socket.broadcast.emit("messageDeleted", messageId);
-  });
-
-  socket.on("messageEdited", (editedMessage) => {
-    socket.broadcast.emit("messageEdited", editedMessage);
+  socket.on("markMessagesAsRead", async ({ groupId, userId }) => {
+    try {
+      await Message.updateMany(
+        { 
+          groupId,
+          senderId: { $ne: userId },
+          readBy: { $ne: userId }
+        },
+        {
+          $addToSet: { readBy: userId }
+        }
+      );
+      
+      // Emit to all connected clients that messages were marked as read
+      io.emit("messagesMarkedAsRead", { groupId, userId });
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    }
   });
 
   socket.on("disconnect", () => {
+    if (currentUser) {
+      socket.leave(`user_${currentUser}`);
+    }
     console.log("User disconnected");
   });
 });
 
+app.get("/api/messages/unread/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Get all groups the user is a member of
+    const groups = await Group.find({ members: userId });
+    
+    // Get unread message counts for each group
+    const unreadCounts = await Promise.all(
+      groups.map(async (group) => {
+        const count = await Message.countDocuments({
+          groupId: group._id,
+          senderId: { $ne: userId },
+          readBy: { $ne: userId }
+        });
+        return {
+          groupId: group._id,
+          count
+        };
+      })
+    );
+    
+    res.json(unreadCounts);
+  } catch (error) {
+    console.error("Error getting unread counts:", error);
+    res.status(500).json({ error: "Failed to get unread counts" });
+  }
+});
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

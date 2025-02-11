@@ -24,39 +24,39 @@ const DashboardToolbar = ({
   setActiveTab,
   showGroupMembers,
   showNotifications,
-  isWhiteboardActive,
   showGroupDetails,
   onToggleMembers,
   onToggleNotifications,
   onToggleDetails,
-  isLiveSession,
-  selectedChat,
 }) => {
-  const handleTabChange = (tab) => {
-    if (tab === "whiteboard" && !isLiveSession) {
-      return;
-    }
-    setActiveTab(tab);
-  };
-
-  return (    <div className="flex gap-4 bg-blue-100 p-2 shadow-lg border-b border-gray-200 items-center justify-between flex-shrink-0">
-    <div className="flex gap-4 items-center">
-      <Tooltip message="Whiteboard">
-        <div
-          onClick={() => isWhiteboardActive && setActiveTab("whiteboard")}
-          className={`cursor-pointer p-2 rounded-full ${
-            activeTab === "whiteboard" 
-              ? "bg-blue-500 text-white" 
-              : isWhiteboardActive ? "bg-gray-200" : "bg-gray-200 opacity-50 cursor-not-allowed"
-          } transition-colors duration-200`}
-          disabled={!isWhiteboardActive}
-        >
-          <FaChalkboard className="w-5 h-5" />
-        </div>
+  return (
+    <div className="flex gap-4 bg-blue-100 p-2 shadow-lg border-b border-gray-200 items-center justify-between flex-shrink-0">
+      <div className="flex gap-4 items-center">
+        <Tooltip message="Whiteboard">
+          <div
+            onClick={() => setActiveTab("whiteboard")}
+            className={`cursor-pointer p-2 rounded-full ${
+              activeTab === "whiteboard"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200"
+            } hover:bg-blue-600 transition-colors duration-200`}
+          >
+            <FaChalkboard className="w-5 h-5" />
+          </div>
+        </Tooltip>
+        <Tooltip message="Voice Chat">
+          <div
+            onClick={() => setActiveTab("voice")}
+            className={`cursor-pointer p-2 rounded-full ${
+              activeTab === "voice" ? "bg-blue-500 text-white" : "bg-gray-200"
+            } hover:bg-blue-600 transition-colors duration-200`}
+          >
+            <FaMicrophone className="w-5 h-5" />
+          </div>
         </Tooltip>
         <Tooltip message="Home">
           <div
-            onClick={() => handleTabChange("default")}
+            onClick={() => setActiveTab("default")}
             className={`cursor-pointer p-2 rounded-full ${
               activeTab === "default" ? "bg-blue-500 text-white" : "bg-gray-200"
             } hover:bg-blue-600 transition-colors duration-200`}

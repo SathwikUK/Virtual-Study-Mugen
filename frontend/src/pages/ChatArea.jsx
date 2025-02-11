@@ -4,7 +4,7 @@ import axios from "axios";
 import { useContextMenu } from "react-contexify";
 import "react-contexify/dist/ReactContexify.css";
 import MessageList from "../components/MessageList";
-import { Download, File, Search } from "lucide-react";
+import { Search, Users, Bell, Phone, Video } from "lucide-react";
 import MessageInput from "../components/MessageInput";
 import MessageContext from "../components/MessageContext";
 
@@ -16,8 +16,9 @@ const socket = io("http://localhost:5000", {
 });
 
 const MENU_ID = "message-context-menu";
+const MESSAGES_PER_PAGE = 50;
 
-const ChatArea = ({ selectedChat, userId, currentUser }) => {
+const ChatArea = ({ selectedChat, userId, currentUser, onNewMessage = () => {} }) => {
   const [messages, setMessages] = useState([]);
   const [filteredMessages, setFilteredMessages] = useState([]);
   const [message, setMessage] = useState("");
@@ -27,46 +28,99 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [messageStatuses, setMessageStatuses] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+
   const { show } = useContextMenu({
     id: MENU_ID,
   });
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  const fetchMessages = async (pageNum = 1, scrollToEnd = true) => {
+    if (!selectedChat?._id || loading) return;
+    
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `http://localhost:5000/api/messages/${selectedChat._id}?page=${pageNum}&limit=${MESSAGES_PER_PAGE}`
+      );
+      
+      const newMessages = response.data;
+      if (pageNum === 1) {
+        setMessages(newMessages);
+        setFilteredMessages(newMessages);
+        if (scrollToEnd) {
+          setTimeout(() => scrollToBottom("auto"), 100);
+        }
+      } else {
+        setMessages(prev => [...newMessages, ...prev]);
+        setFilteredMessages(prev => [...newMessages, ...prev]);
+      }
+      
+      setHasMore(newMessages.length === MESSAGES_PER_PAGE);
+    } catch (error) {
+      console.error("Error loading messages:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScroll = () => {
+    const container = messagesContainerRef.current;
+    if (container && container.scrollTop === 0 && hasMore && !loading) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchMessages(nextPage, false);
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
     if (selectedChat) {
+      setPage(1);
+      setHasMore(true);
       socket.emit("joinGroup", selectedChat._id);
-      fetchMessages();
+      fetchMessages(1);
+      socket.emit("markMessagesAsRead", { groupId: selectedChat._id, userId });
     }
     return () => {
-      socket.emit("leaveGroup", selectedChat?._id);
+      if (selectedChat?._id) {
+        socket.emit("leaveGroup", selectedChat._id);
+      }
       setShowEmojiPicker(false);
     };
-  }, [selectedChat]);
+  }, [selectedChat, userId]);
 
   useEffect(() => {
     const handleNewMessage = (newMsg) => {
-      setMessages((prev) => {
-        const messageExists = prev.some((msg) => msg._id === newMsg._id);
-        if (!messageExists) {
-          return [...prev, newMsg];
-        }
-        return prev;
-      });
-      setFilteredMessages((prev) => {
-        const messageExists = prev.some((msg) => msg._id === newMsg._id);
-        if (!messageExists) {
-          return [...prev, newMsg];
-        }
-        return prev;
-      });
+      if (selectedChat && selectedChat._id === newMsg.groupId) {
+        setMessages((prev) => {
+          const messageExists = prev.some((msg) => msg._id === newMsg._id);
+          if (!messageExists) {
+            const newMessages = [...prev, newMsg];
+            return newMessages;
+          }
+          return prev;
+        });
+        setFilteredMessages((prev) => {
+          const messageExists = prev.some((msg) => msg._id === newMsg._id);
+          if (!messageExists) {
+            const newMessages = [...prev, newMsg];
+            return newMessages;
+          }
+          return prev;
+        });
+        scrollToBottom();
+        socket.emit("markMessagesAsRead", { groupId: newMsg.groupId, userId });
+      }
+      if (typeof onNewMessage === 'function') {
+        onNewMessage(newMsg);
+      }
     };
 
     const handleMessageDeleted = (deletedMessageId) => {
@@ -103,10 +157,10 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     return () => {
       socket.off("newMessage", handleNewMessage);
       socket.off("messageDeleted", handleMessageDeleted);
-      socket.off("messageEdited", handleMessageEdited);
+      socket.off("messageEdited", handleMessageRead);
       socket.off("messageRead", handleMessageRead);
     };
-  }, []);
+  }, [selectedChat, userId, onNewMessage]);
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -121,7 +175,6 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
         )?.toLowerCase();
         const fileName = msg.fileData?.fileName?.toLowerCase() || "";
         const searchLower = searchQuery.toLowerCase();
-
         return (
           messageText.includes(searchLower) ||
           senderName.includes(searchLower) ||
@@ -132,25 +185,11 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     }
   }, [searchQuery, messages]);
 
-  const fetchMessages = async () => {
-    try {
-      const response = await axios.get(
-        `http://localhost:5000/api/messages/${selectedChat._id}`
-      );
-      setMessages(response.data);
-      setFilteredMessages(response.data);
-    } catch (error) {
-      console.error("Error loading messages:", error);
-    }
-  };
-
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       setUploading(true);
       const response = await axios.post(
@@ -168,13 +207,11 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
   const handleSendMessage = async (text = null, fileData = null) => {
     const messageText = text || message;
     if (!messageText.trim() && !fileData) return;
-
     const senderId = userId || localStorage.getItem("userId");
     if (!senderId) {
       console.error("Error: senderId not found.");
       return;
     }
-
     const newMessage = {
       groupId: selectedChat._id,
       senderId,
@@ -182,7 +219,6 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
       fileData,
       senderName: currentUser?.name,
     };
-
     try {
       const response = await axios.post(
         "http://localhost:5000/api/messages",
@@ -240,9 +276,12 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     }
   };
 
-  const startEditing = (messageId, currentMessage) => {
-    setEditingMessageId(messageId);
-    setEditMessage(currentMessage);
+  const startEditing = (messageId) => {
+    const messageToEdit = messages.find((m) => m._id === messageId);
+    if (messageToEdit) {
+      setEditingMessageId(messageId);
+      setEditMessage(messageToEdit.message || "");
+    }
   };
 
   const cancelEditing = () => {
@@ -271,63 +310,94 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
     }
   };
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header with group info and search */}
-      <div className="p-4 bg-white shadow-md">
-        {selectedChat && (
-          <div className="flex flex-col gap-4">
-            {/* Group info section */}
-            <div className="flex items-center gap-4">
-              <img
-                src={selectedChat.image}
-                alt={selectedChat.name}
-                className="w-12 h-12 rounded-full object-cover"
-              />
-              <h2 className="text-xl font-semibold">{selectedChat.name}</h2>
-            </div>
+  if (!selectedChat) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="text-center p-8 rounded-lg bg-white shadow-lg">
+          <h3 className="text-2xl font-semibold text-gray-800 mb-4">Welcome to Chat</h3>
+          <p className="text-gray-600">Select a conversation to start messaging</p>
+        </div>
+      </div>
+    );
+  }
 
-            {/* Search bar below group info */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search messages..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={18}
-              />
+  return (
+    <div className="flex flex-col h-full bg-gray-50">
+      <div className="p-4 bg-white shadow-lg">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <img
+                  src={selectedChat.image}
+                  alt={selectedChat.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-purple-500"
+                />
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">{selectedChat.name}</h2>
+                <p className="text-sm text-gray-500">
+                  {selectedChat.members?.length || 0} members • Active now
+                </p>
+              </div>
             </div>
+            
           </div>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search in conversation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
+            />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={18}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div 
+        className="flex-1 overflow-y-auto px-4 py-2" 
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+      >
+        {loading && page === 1 ? (
+          <div className="flex justify-center items-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+          </div>
+        ) : (
+          <>
+            {loading && page > 1 && (
+              <div className="text-center py-2">
+                <div className="animate-spin inline-block rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+              </div>
+            )}
+            <MessageList
+              filteredMessages={filteredMessages}
+              editingMessageId={editingMessageId}
+              editMessage={editMessage}
+              setEditMessage={setEditMessage}
+              handleEditMessage={handleEditMessage}
+              cancelEditing={cancelEditing}
+              handleContextMenu={handleContextMenu}
+              handleDownload={handleDownload}
+              userId={userId}
+              messageStatuses={messageStatuses}
+            />
+            <div ref={messagesEndRef} />
+          </>
         )}
       </div>
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto">
-        <MessageList
-          selectedChat={selectedChat}
-          filteredMessages={filteredMessages}
-          editingMessageId={editingMessageId}
-          editMessage={editMessage}
-          setEditMessage={setEditMessage}
-          handleEditMessage={handleEditMessage}
-          cancelEditing={cancelEditing}
-          handleContextMenu={handleContextMenu}
-          handleDownload={handleDownload}
-          userId={userId}
-          messageStatuses={messageStatuses}
-        />
-      </div>
-
-      {/* Fixed message input at bottom */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200">
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
         <MessageInput
           message={message}
           setMessage={setMessage}
-          handleSendMessage={handleSendMessage}
+          handleSendMessage={() => handleSendMessage()}
           showEmojiPicker={showEmojiPicker}
           setShowEmojiPicker={setShowEmojiPicker}
           onEmojiClick={onEmojiClick}
@@ -338,12 +408,7 @@ const ChatArea = ({ selectedChat, userId, currentUser }) => {
 
       <MessageContext
         menuId={MENU_ID}
-        onStartEditing={(messageId) =>
-          startEditing(
-            messageId,
-            messages.find((m) => m._id === messageId)?.message
-          )
-        }
+        onStartEditing={startEditing}
         onDeleteMessage={handleDeleteMessage}
       />
     </div>
