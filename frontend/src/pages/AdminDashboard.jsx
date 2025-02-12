@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -12,6 +13,7 @@ import EditGroupModal from "../components/EditGroupModal";
 import DeleteGroupModal from "../components/DeleteGroupModal";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("users");
   const [selectedItem, setSelectedItem] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -23,6 +25,11 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
   const [groups, setGroups] = useState([]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/');
+  };
 
   // Fetch users from API
   const fetchUsers = async () => {
@@ -72,14 +79,6 @@ const AdminDashboard = () => {
     setIsEditGroupOpen(true);
   };
 
-  const renderContent = () => {
-    if (activeTab === "users") {
-      return renderUsers();
-    } else if (activeTab === "groups") {
-      return renderGroups();
-    }
-  };
-
   useEffect(() => {
     if (activeTab === "users") {
       fetchUsers();
@@ -90,11 +89,17 @@ const AdminDashboard = () => {
 
   const renderUsers = () => {
     if (!Array.isArray(users) || users.length === 0) {
-      return <div>No users found.</div>;
+      return (
+        <div className="text-white text-center p-8 bg-gray-900/50 rounded-xl backdrop-blur-lg 
+          border border-gray-800/50 shadow-neon">
+          No users found.
+        </div>
+      );
     }
 
     return (
-      <div className="grid grid-cols-1 m-4 gap-4 h-fit max-h-[87vh] overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto 
+        custom-scrollbar max-h-[calc(100vh-7rem)]">
         {users
           .filter(
             (user) =>
@@ -108,6 +113,7 @@ const AdminDashboard = () => {
               key={user.email}
               title={user.name}
               subtitle={user.email}
+              image={user.image ? `data:image/png;base64,${user.image}` : null}
               onView={() => handleView(user)}
               onEdit={() => handleEdit(user)}
               onDelete={() => {
@@ -122,36 +128,58 @@ const AdminDashboard = () => {
 
   const renderGroups = () => {
     if (!Array.isArray(groups) || groups.length === 0) {
-      return <div>No groups found.</div>;
+      return (
+        <div className="text-white text-center p-8 bg-gray-900/50 rounded-xl backdrop-blur-lg 
+          border border-gray-800/50 shadow-neon">
+          No groups found.
+        </div>
+      );
     }
-
+  
     return (
-      <div className="grid grid-cols-1 m-4 gap-4 h-fit max-h-[87vh] overflow-y-auto">
-        {groups.map((group) => (
-          <Card
-            key={group._id}
-            title={group.name}
-            subtitle={group.description || "No description available"}
-            image={group.image}
-            onView={() => handleGroupView(group)}
-            onEdit={() => handleGroupEdit(group)}
-            onDelete={() => {
-              setSelectedItem(group);
-              setIsDeleteGroupModalOpen(true);
-            }}
-          />
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto 
+        custom-scrollbar max-h-[calc(100vh-7rem)]">
+        {groups
+          .filter(
+            (group) =>
+              (group.name &&
+                group.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+              (group.description &&
+                group.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          )
+          .map((group) => (
+            <Card
+              key={group._id}
+              title={group.name}
+              subtitle={group.description || "No description available"}
+              image={group.image ? `data:image/png;base64,${group.image}` : null}
+              onView={() => handleGroupView(group)}
+              onEdit={() => handleGroupEdit(group)}
+              onDelete={() => {
+                setSelectedItem(group);
+                setIsDeleteGroupModalOpen(true);
+              }}
+            />
+          ))}
       </div>
     );
   };
+  
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-screen">
+    <div className="flex min-h-screen bg-black">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <div className="w-full h-screen bg-gray-100 p-4 lg:w-full flex-1">
-        <SearchBar setSearchQuery={setSearchQuery} />
-        {renderContent()}
+      <div className="flex-1 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <SearchBar setSearchQuery={setSearchQuery} />
+          
+        </div>
+
+        <div className="bg-gray-900/50 rounded-xl backdrop-blur-lg shadow-2xl 
+          border border-gray-800/50 hover:border-pink-500/30 transition-all duration-300">
+          {activeTab === "users" ? renderUsers() : renderGroups()}
+        </div>
       </div>
 
       {isProfileOpen && selectedItem && (

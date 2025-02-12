@@ -40,13 +40,7 @@ const GroupProfileModal = ({ selectedGroup, onClose, onEdit }) => {
           >
             Close
           </button>
-          <button
-            onClick={() => onEdit(selectedGroup)}
-            className="bg-yellow-500 text-white text-xl py-1 px-3 rounded hover:bg-yellow-600"
-          >
-            Edit
-          </button>
-        </div>
+          </div>
       </div>
     </div>
   );

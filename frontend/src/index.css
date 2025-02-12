@@ -4,6 +4,15 @@
 @tailwind utilities;
 /* Global font-family */
 
+/* Hide scrollbar but keep functionality */
+.custom-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
 
 body {
   font-family: 'Roboto', sans-serif; /* Default font for body */
