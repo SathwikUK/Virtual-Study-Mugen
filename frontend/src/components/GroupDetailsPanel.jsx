@@ -24,7 +24,7 @@ const GroupDetailsPanel = ({
         <div className="p-6">
           <div className="relative w-24 h-24 mx-auto mb-4">
             <img
-              src={selectedChat.imag || "https://via.placeholder.com/150"}
+              src={selectedChat.image || "https://via.placeholder.com/150"}
               alt={selectedChat.name}
               className="w-full h-full rounded-full object-cover ring-4 ring-white shadow-lg"
             />

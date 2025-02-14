@@ -15,22 +15,26 @@ const MessageInput = ({
   const fileInputRef = useRef(null);
 
   return (
-    <div className="p-4 bg-white border-t relative">
+    <div className="p-4 bg-[#12121f] border-t border-[#2a2a4a] relative">
       {showEmojiPicker && (
-        <div className="absolute bottom-full right-4 mb-2 shadow-xl rounded-lg overflow-hidden">
-          <EmojiPicker 
-            onEmojiClick={onEmojiClick} 
-            width={300} 
-            height={400}
-            searchPlaceholder="Search emojis..."
-            previewConfig={{ showPreview: false }}
-          />
+        <div className="absolute bottom-full right-4 mb-2 shadow-[0_0_20px_rgba(139,139,255,0.2)] rounded-lg overflow-hidden">
+          <div className="bg-[#1a1a2e] p-2 rounded-lg">
+            <EmojiPicker 
+              onEmojiClick={onEmojiClick} 
+              width={300} 
+              height={400}
+              searchPlaceholder="Search emojis..."
+              previewConfig={{ showPreview: false }}
+              theme="dark"
+              emojiStyle="native"
+            />
+          </div>
         </div>
       )}
-      <div className="flex items-center gap-2 max-w-4xl mx-auto bg-gray-50 p-2 rounded-full shadow-sm">
+      <div className="flex items-center gap-2 max-w-4xl mx-auto bg-[#1a1a2e] p-2 rounded-lg shadow-[0_0_15px_rgba(139,139,255,0.1)]">
         <button
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition-all"
+          className="p-3 text-[#8b8bff] hover:bg-[#2a2a4a] rounded-lg transition-all duration-300"
           type="button"
         >
           <Smile size={20} />
@@ -44,7 +48,7 @@ const MessageInput = ({
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition-all"
+          className="p-3 text-[#8b8bff] hover:bg-[#2a2a4a] rounded-lg transition-all duration-300"
           disabled={uploading}
           type="button"
         >
@@ -56,15 +60,15 @@ const MessageInput = ({
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
           placeholder={uploading ? "Uploading file..." : "Type a message..."}
-          className="flex-1 p-3 bg-transparent focus:outline-none placeholder-gray-500"
+          className="flex-1 p-3 bg-transparent text-[#8b8bff] placeholder-[#4a4a6a] focus:outline-none font-cyber"
           disabled={uploading}
         />
         <button
-          onClick={() => handleSendMessage()}
-          className={`p-3 rounded-full transition-all ${
+          onClick={handleSendMessage}
+          className={`p-3 rounded-lg transition-all duration-300 ${
             message.trim() || uploading
-              ? "bg-blue-500 text-white hover:bg-blue-600"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              ? "bg-[#8b8bff] text-[#0a0a0f] hover:bg-[#9d9dff] shadow-[0_0_10px_rgba(139,139,255,0.3)]"
+              : "bg-[#2a2a4a] text-[#4a4a6a] cursor-not-allowed"
           }`}
           disabled={!message.trim() || uploading}
         >

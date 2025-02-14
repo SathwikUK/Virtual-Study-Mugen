@@ -7,6 +7,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import VsmChat from "./pages/VsmChat";
 
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/openai" element={<VsmChat />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         

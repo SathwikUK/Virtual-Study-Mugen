@@ -147,23 +147,31 @@ const AdminDashboard = () => {
               (group.description &&
                 group.description.toLowerCase().includes(searchQuery.toLowerCase()))
           )
-          .map((group) => (
-            <Card
-              key={group._id}
-              title={group.name}
-              subtitle={group.description || "No description available"}
-              image={group.image ? `data:image/png;base64,${group.image}` : null}
-              onView={() => handleGroupView(group)}
-              onEdit={() => handleGroupEdit(group)}
-              onDelete={() => {
-                setSelectedItem(group);
-                setIsDeleteGroupModalOpen(true);
-              }}
-            />
-          ))}
+          .map((group) => {
+            // Ensure the image is correctly formatted
+            const imageSrc = group.image?.startsWith("data:image")
+              ? group.image
+              : `data:image/jpeg;base64,${group.image}`;
+  
+            return (
+              <Card
+                key={group._id}
+                title={group.name}
+                subtitle={group.description || "No description available"}
+                image={imageSrc || "https://via.placeholder.com/150"} // Fallback image
+                onView={() => handleGroupView(group)}
+                onEdit={() => handleGroupEdit(group)}
+                onDelete={() => {
+                  setSelectedItem(group);
+                  setIsDeleteGroupModalOpen(true);
+                }}
+              />
+            );
+          })}
       </div>
     );
   };
+  
   
 
   return (

@@ -10,6 +10,7 @@ const User = require("./models/user");
 const multer = require("multer");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const axios = require("axios");
 
 dotenv.config();
 const app = express();
@@ -20,10 +21,12 @@ const io = socketIo(server, {
   pingTimeout: 60000,
 });
 
+const COHERE_API_KEY = process.env.COHERE_API_KEY;
+
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Multer configuration for memory storage
 const storage = multer.memoryStorage();
@@ -31,7 +34,7 @@ const upload = multer({
   storage,
   limits: {
     fileSize: 50 * 1024 * 1024,
-  }
+  },
 });
 
 // Connect to MongoDB
@@ -39,7 +42,7 @@ mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    maxPoolSize: 100
+    maxPoolSize: 100,
   })
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB Connection Failed:", err));
@@ -70,19 +73,21 @@ app.post("/api/messages", async (req, res) => {
       groupId,
       senderId,
       message,
-      fileData: fileData ? {
-        data: Buffer.from(fileData.data, 'base64'),
-        contentType: fileData.contentType,
-        fileName: fileData.fileName
-      } : undefined,
-      senderName: sender.name
+      fileData: fileData
+        ? {
+            data: Buffer.from(fileData.data, "base64"),
+            contentType: fileData.contentType,
+            fileName: fileData.fileName,
+          }
+        : undefined,
+      senderName: sender.name,
     });
 
     await newMessage.save();
 
     const messageToSend = newMessage.toObject();
     if (messageToSend.fileData) {
-      messageToSend.fileData.data = messageToSend.fileData.data.toString('base64');
+      messageToSend.fileData.data = messageToSend.fileData.data.toString("base64");
     }
 
     io.to(groupId).emit("newMessage", messageToSend);
@@ -101,9 +106,9 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
     }
 
     const fileData = {
-      data: req.file.buffer.toString('base64'),
+      data: req.file.buffer.toString("base64"),
       contentType: req.file.mimetype,
-      fileName: req.file.originalname
+      fileName: req.file.originalname,
     };
 
     res.json({ fileData });
@@ -120,10 +125,10 @@ app.get("/api/messages/:groupId", async (req, res) => {
       .populate("senderId", "name")
       .sort({ timestamp: 1 });
 
-    const messagesToSend = messages.map(msg => {
+    const messagesToSend = messages.map((msg) => {
       const msgObj = msg.toObject();
       if (msgObj.fileData && msgObj.fileData.data) {
-        msgObj.fileData.data = msgObj.fileData.data.toString('base64');
+        msgObj.fileData.data = msgObj.fileData.data.toString("base64");
       }
       return msgObj;
     });
@@ -144,14 +149,14 @@ app.put("/api/messages/:messageId", async (req, res) => {
       { message, edited: true },
       { new: true }
     ).populate("senderId", "name");
-    
+
     if (!updatedMessage) {
       return res.status(404).json({ error: "Message not found" });
     }
 
     const messageToSend = updatedMessage.toObject();
     if (messageToSend.fileData && messageToSend.fileData.data) {
-      messageToSend.fileData.data = messageToSend.fileData.data.toString('base64');
+      messageToSend.fileData.data = messageToSend.fileData.data.toString("base64");
     }
 
     io.to(updatedMessage.groupId).emit("messageEdited", messageToSend);
@@ -166,7 +171,7 @@ app.put("/api/messages/:messageId", async (req, res) => {
 app.delete("/api/messages/:messageId", async (req, res) => {
   try {
     const message = await Message.findById(req.params.messageId);
-    
+
     if (!message) {
       return res.status(404).json({ error: "Message not found" });
     }
@@ -202,23 +207,46 @@ io.on("connection", (socket) => {
       console.log(`User left group: ${groupId}`);
     }
   });
+  socket.on("generate", async (data) => {
+    try {
+      const response = await axios.post(
+        "https://api.cohere.ai/v1/generate",
+        {
+          model: "command",
+          prompt: data.prompt,
+          max_tokens: 1000
+        },
+        {
+          headers: {
+            Authorization: `BEARER ${COHERE_API_KEY}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      socket.emit("generateResponse", response.data);
+    } catch (error) {
+      console.error("Generation error:", error);
+      socket.emit("generateError", { message: error.message });
+    }
+  });
 
   socket.on("sendMessage", async (message) => {
     try {
       const newMessage = new Message({
         ...message,
-        readBy: [message.senderId] // Mark as read by sender
+        readBy: [message.senderId], // Mark as read by sender
       });
       await newMessage.save();
-      
+
       // Broadcast to all users in the group
       socket.to(message.groupId).emit("newMessage", newMessage);
-      
+
       // Get group members
       const group = await Group.findById(message.groupId);
       if (group) {
         // Emit unreadMessage event to all group members except sender
-        group.members.forEach(memberId => {
+        group.members.forEach((memberId) => {
           if (memberId.toString() !== message.senderId.toString()) {
             io.to(`user_${memberId}`).emit("newMessage", newMessage);
           }
@@ -232,16 +260,16 @@ io.on("connection", (socket) => {
   socket.on("markMessagesAsRead", async ({ groupId, userId }) => {
     try {
       await Message.updateMany(
-        { 
+        {
           groupId,
           senderId: { $ne: userId },
-          readBy: { $ne: userId }
+          readBy: { $nin: [userId] },
         },
         {
-          $addToSet: { readBy: userId }
+          $addToSet: { readBy: userId },
         }
       );
-      
+
       // Emit to all connected clients that messages were marked as read
       io.emit("messagesMarkedAsRead", { groupId, userId });
     } catch (error) {
@@ -257,33 +285,40 @@ io.on("connection", (socket) => {
   });
 });
 
+// API to get unread counts per group for a user
 app.get("/api/messages/unread/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    
-    // Get all groups the user is a member of
-    const groups = await Group.find({ members: userId });
-    
-    // Get unread message counts for each group
-    const unreadCounts = await Promise.all(
-      groups.map(async (group) => {
-        const count = await Message.countDocuments({
-          groupId: group._id,
-          senderId: { $ne: userId },
-          readBy: { $ne: userId }
-        });
-        return {
-          groupId: group._id,
-          count
-        };
-      })
-    );
-    
+    // Use the 'new' keyword to create an ObjectId instance
+    const userObjId = new mongoose.Types.ObjectId(userId);
+    // Aggregate unread message counts per group
+    const counts = await Message.aggregate([
+      {
+        $match: {
+          senderId: { $ne: userObjId },
+          // For array field "readBy", use $nin to filter out messages read by the user
+          readBy: { $nin: [userObjId] },
+        },
+      },
+      {
+        $group: {
+          _id: "$groupId",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Format the response as an array of { groupId, count }
+    const unreadCounts = counts.map((c) => ({
+      groupId: c._id,
+      count: c.count,
+    }));
     res.json(unreadCounts);
   } catch (error) {
     console.error("Error getting unread counts:", error);
     res.status(500).json({ error: "Failed to get unread counts" });
   }
 });
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

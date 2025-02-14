@@ -5,13 +5,67 @@
 /* Global font-family */
 
 /* Hide scrollbar but keep functionality */
-.custom-scrollbar {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(147, 51, 234, 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(147, 51, 234, 0.7);
+}
+
+/* Message Animation */
+@keyframes messageAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-appear {
+  animation: messageAppear 0.3s ease-out forwards;
+}
+
+/* Neon Text Effect */
+.neon-text {
+  text-shadow: 0 0 5px rgba(147, 51, 234, 0.5),
+               0 0 10px rgba(147, 51, 234, 0.3),
+               0 0 15px rgba(147, 51, 234, 0.2);
+}
+
+/* Neon Border Effect */
+.neon-border {
+  box-shadow: 0 0 5px rgba(147, 51, 234, 0.5),
+              0 0 10px rgba(147, 51, 234, 0.3),
+              inset 0 0 5px rgba(147, 51, 234, 0.2);
+}
+
+/* Hover Effects */
+.hover-scale {
+  transition: transform 0.2s ease-out;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Glassmorphism */
+.glass-effect {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 body {

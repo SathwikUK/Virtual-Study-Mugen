@@ -6,14 +6,15 @@ const Group = require('../models/groupModel');
 const process = require("process");
 const mongoose = require('mongoose');
 
+// Update NotificationSchema to include timestamps
 const NotificationSchema = new mongoose.Schema({
   type: String,
   to: String,
   from: String,
   groupId: String,
   groupName: String,
-  status: String, // 'pending', 'accepted', 'rejected'
-});
+  status: String,
+}, { timestamps: true }); // Add this option for automatic timestamps
 
 const Notification = mongoose.model('Notification', NotificationSchema);
 

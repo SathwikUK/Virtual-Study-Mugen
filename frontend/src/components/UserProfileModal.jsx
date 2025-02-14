@@ -15,9 +15,13 @@ const UserProfileModal = ({ selectedItem, onClose }) => {
         {/* Profile Container */}
         <div className="flex items-center space-x-6 mb-6">
           {/* Profile Image */}
-          {selectedItem.image ? (
+          {selectedItem?.image ? (
             <img
-              src={`data:image/jpeg;base64,${selectedItem.image}`}
+              src={
+                selectedItem.image.startsWith("data:image")
+                  ? selectedItem.image
+                  : `data:image/jpeg;base64,${selectedItem.image}`
+              }
               alt="Profile"
               className="w-24 h-24 rounded-full border-2 border-purple-500 shadow-md object-cover"
             />
@@ -25,7 +29,7 @@ const UserProfileModal = ({ selectedItem, onClose }) => {
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-700 
               to-pink-600 flex items-center justify-center border-2 border-purple-500 shadow-md">
               <span className="text-3xl font-semibold">
-                {selectedItem.name?.charAt(0)}
+                {selectedItem?.name?.charAt(0) || "?"}
               </span>
             </div>
           )}
@@ -34,11 +38,11 @@ const UserProfileModal = ({ selectedItem, onClose }) => {
           <div className="space-y-3">
             <div>
               <label className="text-gray-400 text-sm font-medium">Name</label>
-              <p className="text-lg font-semibold">{selectedItem.name}</p>
+              <p className="text-lg font-semibold">{selectedItem?.name || "N/A"}</p>
             </div>
             <div>
               <label className="text-gray-400 text-sm font-medium">Email</label>
-              <p className="text-lg font-semibold">{selectedItem.email}</p>
+              <p className="text-lg font-semibold">{selectedItem?.email || "N/A"}</p>
             </div>
           </div>
         </div>
