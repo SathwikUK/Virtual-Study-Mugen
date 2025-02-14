@@ -15,14 +15,14 @@ const MessageInput = ({
   const fileInputRef = useRef(null);
 
   return (
-    <div className="p-4 bg-[#12121f] border-t border-[#2a2a4a] relative">
+    <div className="p-2 bg-[#12121f] border-t border-[#2a2a4a] relative">
       {showEmojiPicker && (
-        <div className="absolute bottom-full right-4 mb-2 shadow-[0_0_20px_rgba(139,139,255,0.2)] rounded-lg overflow-hidden">
-          <div className="bg-[#1a1a2e] p-2 rounded-lg">
+        <div className="absolute bottom-full right-2 mb-2 shadow-[0_0_15px_rgba(139,139,255,0.2)] rounded-lg overflow-hidden">
+          <div className="bg-[#1a1a2e] p-1 rounded-lg">
             <EmojiPicker 
               onEmojiClick={onEmojiClick} 
-              width={300} 
-              height={400}
+              width={250} 
+              height={350}
               searchPlaceholder="Search emojis..."
               previewConfig={{ showPreview: false }}
               theme="dark"
@@ -31,13 +31,13 @@ const MessageInput = ({
           </div>
         </div>
       )}
-      <div className="flex items-center gap-2 max-w-4xl mx-auto bg-[#1a1a2e] p-2 rounded-lg shadow-[0_0_15px_rgba(139,139,255,0.1)]">
+      <div className="flex items-center gap-1 max-w-full mx-auto bg-[#1a1a2e] p-1 rounded-lg shadow-[0_0_10px_rgba(139,139,255,0.1)]">
         <button
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="p-3 text-[#8b8bff] hover:bg-[#2a2a4a] rounded-lg transition-all duration-300"
+          className="p-2 text-[#8b8bff] hover:bg-[#2a2a4a] rounded-lg transition-all duration-300"
           type="button"
         >
-          <Smile size={20} />
+          <Smile size={16} />
         </button>
         <input
           type="file"
@@ -48,11 +48,11 @@ const MessageInput = ({
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="p-3 text-[#8b8bff] hover:bg-[#2a2a4a] rounded-lg transition-all duration-300"
+          className="p-2 text-[#8b8bff] hover:bg-[#2a2a4a] rounded-lg transition-all duration-300"
           disabled={uploading}
           type="button"
         >
-          <Paperclip size={20} />
+          <Paperclip size={16} />
         </button>
         <input
           type="text"
@@ -60,19 +60,19 @@ const MessageInput = ({
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
           placeholder={uploading ? "Uploading file..." : "Type a message..."}
-          className="flex-1 p-3 bg-transparent text-[#8b8bff] placeholder-[#4a4a6a] focus:outline-none font-cyber"
+          className="flex-1 p-2 bg-transparent text-[#8b8bff] placeholder-[#4a4a6a] focus:outline-none text-sm"
           disabled={uploading}
         />
         <button
           onClick={handleSendMessage}
-          className={`p-3 rounded-lg transition-all duration-300 ${
+          className={`p-2 rounded-lg transition-all duration-300 ${
             message.trim() || uploading
-              ? "bg-[#8b8bff] text-[#0a0a0f] hover:bg-[#9d9dff] shadow-[0_0_10px_rgba(139,139,255,0.3)]"
+              ? "bg-[#8b8bff] text-[#0a0a0f] hover:bg-[#9d9dff] shadow-[0_0_8px_rgba(139,139,255,0.3)]"
               : "bg-[#2a2a4a] text-[#4a4a6a] cursor-not-allowed"
           }`}
           disabled={!message.trim() || uploading}
         >
-          <Send size={20} />
+          <Send size={16} />
         </button>
       </div>
     </div>

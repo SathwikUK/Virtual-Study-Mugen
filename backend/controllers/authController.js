@@ -108,10 +108,10 @@ exports.login = async (req, res) => {
   if (user && (await bcrypt.compare(password, user.password))) {
     // Include the user's role in the JWT token
     const token = jwt.sign(
-      { email: user.email, role: user.role }, // Add the role to the token payload
+      {_id: user._id, email: user.email, role: user.role }, // Add the role to the token payload
       process.env.JWT_SECRET,
       { expiresIn: "1h" } // Optional: Set token expiration
-    );
+    );
     return res.json({ token, role: user.role }); // Send role along with token
   } else {
     return res.status(400).json({ message: "Invalid credentials" });

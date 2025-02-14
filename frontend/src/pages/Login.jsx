@@ -64,16 +64,24 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-1000 p-6 relative">
+    // Parent container: relative & overflow-hidden for glowing backgrounds
+    <div className="min-h-screen flex items-center justify-center bg-gray-1000 p-6 relative overflow-hidden">
+      {/* Glowing background blobs */}
+      <div className="absolute top-[-15%] left-[-15%] w-[400px] h-[400px] bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-30 animate-pulse" />
+      <div className="absolute bottom-[30%] right-[50%] w-[200px] h-[200px] bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full blur-3xl opacity-30 animate-ping" />
+      <div className="absolute bottom-[-15%] right-[-15%] w-[400px] h-[400px] bg-gradient-to-br from-purple-600 to-blue-600 rounded-full blur-3xl opacity-30 animate-pulse" />
+
+      {/* Main Content Container (above the glows) */}
       <button
         onClick={() => navigate("/")}
         type="button"
-        className="absolute top-6 left-6 flex items-center text-blue-400 hover:text-blue-600 transition duration-300"
+        className="absolute top-6 left-6 flex items-center text-blue-400 hover:text-blue-600 transition duration-300 z-10"
       >
         <FaArrowLeft className="mr-2" />
         Back to Home
       </button>
-      <div className="flex flex-col md:flex-row items-center w-full max-w-5xl bg-gray-1000 rounded-xl  overflow-hidden gap-10">
+
+      <div className="flex flex-col md:flex-row items-center w-full max-w-5xl bg-gray-1000 rounded-xl overflow-hidden gap-10 relative z-10">
         {/* Left Div - Image */}
         <div className="md:w-1/2 p-12 flex items-center justify-center">
           <img
@@ -129,17 +137,8 @@ const Login = () => {
                 {showPassword ? "🙈" : "👁️"}
               </button>
             </div>
-         {/* {/* <p className="text-center text-gray-400">
-  Forgot your password?{" "}
-  <a
-    href="/forgot-password"
-    className="text-blue-400 font-semibold hover:underline"
-  >
-    Reset it here
-  </a>
-</p> */}
 
-            <div> 
+            <div>
               <label className="block text-gray-400 font-medium mb-2">
                 Role
               </label>

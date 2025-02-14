@@ -8,6 +8,7 @@ router.get('/groups',getGroups)
 router.post('/groups', createGroup);
 router.get('/user/:id', protect, getUserById);
 
+
 router.get('/search-users', protect, searchUsers);
 router.post('/send-group-invite', protect, sendGroupInvite);
 router.post('/respond-group-invite', protect, respondToGroupInvite);

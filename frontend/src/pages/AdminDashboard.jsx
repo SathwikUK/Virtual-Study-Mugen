@@ -1,252 +1,175 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Card from "../components/Card";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import SearchBar from "../components/SearchBar";
-import UserProfileModal from "../components/UserProfileModal";
-import DeleteUserModal from "../components/DeleteUserModal";
-import EditUserProfileModal from "../components/EditUserProfileModal";
-import Sidebar from "../components/Sidebar";
-import GroupProfileModal from "../components/GroupProfileModal";
-import EditGroupModal from "../components/EditGroupModal";
-import DeleteGroupModal from "../components/DeleteGroupModal";
+import React from "react";
+import { FaTimes, FaUserPlus } from "react-icons/fa";
 
-const AdminDashboard = () => {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("users");
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const [isGroupProfileOpen, setIsGroupProfileOpen] = useState(false);
-  const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
-  const [isDeleteGroupModalOpen, setIsDeleteGroupModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [users, setUsers] = useState([]);
-  const [groups, setGroups] = useState([]);
+const GroupDetailsPanel = ({
+  show,
+  onClose,
+  selectedChat,
+  creatorDetails,
+  groupMembers,
+  onInviteClick,
+}) => {
+  if (!show || !selectedChat) return null;
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
-  };
-
-  // Fetch users from API
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/admin/users");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Error fetching users from the database.");
+  // Helper function to convert image data to base64 if needed
+  const getImageSrc = (img) => {
+    if (!img) return "https://via.placeholder.com/150";
+    if (typeof img === "string" && img.startsWith("data:image")) return img;
+    if (typeof img === "object" && img.data) {
+      return `data:image/jpeg;base64,${btoa(
+        new Uint8Array(img.data).reduce(
+          (data, byte) => data + String.fromCharCode(byte),
+          ""
+        )
+      )}`;
     }
+    return img;
   };
-
-  // Fetch groups from API
-  const fetchGroups = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/api/admin/groups");
-      if (!response.ok) throw new Error("Failed to fetch groups");
-      const data = await response.json();
-      setGroups(data.data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Error fetching groups from the database.");
-    }
-  };
-
-  const handleView = (item) => {
-    setSelectedItem(item);
-    setIsProfileOpen(true);
-  };
-
-  const handleGroupView = (group) => {
-    setSelectedItem(group);
-    setIsGroupProfileOpen(true);
-  };
-
-  const handleEdit = (item) => {
-    setSelectedItem(item);
-    setIsEditProfileOpen(true);
-  };
-
-  const handleGroupEdit = (group) => {
-    setSelectedItem(group);
-    setIsEditGroupOpen(true);
-  };
-
-  useEffect(() => {
-    if (activeTab === "users") {
-      fetchUsers();
-    } else if (activeTab === "groups") {
-      fetchGroups();
-    }
-  }, [activeTab]);
-
-  const renderUsers = () => {
-    if (!Array.isArray(users) || users.length === 0) {
-      return (
-        <div className="text-white text-center p-8 bg-gray-900/50 rounded-xl backdrop-blur-lg 
-          border border-gray-800/50 shadow-neon">
-          No users found.
-        </div>
-      );
-    }
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto 
-        custom-scrollbar max-h-[calc(100vh-7rem)]">
-        {users
-          .filter(
-            (user) =>
-              (user.name &&
-                user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-              (user.email &&
-                user.email.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
-          .map((user) => (
-            <Card
-              key={user.email}
-              title={user.name}
-              subtitle={user.email}
-              image={user.image ? `data:image/png;base64,${user.image}` : null}
-              onView={() => handleView(user)}
-              onEdit={() => handleEdit(user)}
-              onDelete={() => {
-                setSelectedItem(user);
-                setIsDeleteModalOpen(true);
-              }}
-            />
-          ))}
-      </div>
-    );
-  };
-
-  const renderGroups = () => {
-    if (!Array.isArray(groups) || groups.length === 0) {
-      return (
-        <div className="text-white text-center p-8 bg-gray-900/50 rounded-xl backdrop-blur-lg 
-          border border-gray-800/50 shadow-neon">
-          No groups found.
-        </div>
-      );
-    }
-  
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto 
-        custom-scrollbar max-h-[calc(100vh-7rem)]">
-        {groups
-          .filter(
-            (group) =>
-              (group.name &&
-                group.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-              (group.description &&
-                group.description.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
-          .map((group) => {
-            // Ensure the image is correctly formatted
-            const imageSrc = group.image?.startsWith("data:image")
-              ? group.image
-              : `data:image/jpeg;base64,${group.image}`;
-  
-            return (
-              <Card
-                key={group._id}
-                title={group.name}
-                subtitle={group.description || "No description available"}
-                image={imageSrc || "https://via.placeholder.com/150"} // Fallback image
-                onView={() => handleGroupView(group)}
-                onEdit={() => handleGroupEdit(group)}
-                onDelete={() => {
-                  setSelectedItem(group);
-                  setIsDeleteGroupModalOpen(true);
-                }}
-              />
-            );
-          })}
-      </div>
-    );
-  };
-  
-  
 
   return (
-    <div className="flex min-h-screen bg-black">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div
+      className="
+        fixed
+        right-0
+        top-16         /* Shift down from top so it's not the full screen */
+        w-64           /* Keep the panel narrow horizontally */
+        max-h-[80vh]   /* Limit vertical size to 80% of the viewport */
+        bg-gradient-to-br from-gray-800 to-black
+        shadow-[0_0_20px_rgba(236,72,153,0.7)]
+        rounded-xl
+        transform
+        transition-transform
+        duration-300
+        ease-out
+        z-50
+        flex
+        flex-col
+      "
+    >
+      {/* Header */}
+      <div className=" border-b border-pink-500 flex justify-between items-center">
+        <h3 className="text-xl font-semibold text-pink-500">Group Details</h3>
+        <button
+          onClick={onClose}
+          className="text-pink-400 hover:text-white transition-colors duration-200"
+        >
+          <FaTimes className="w-5 h-5" />
+        </button>
+      </div>
 
-      <div className="flex-1 p-6">
-        <div className="flex justify-between items-center mb-6">
-          <SearchBar setSearchQuery={setSearchQuery} />
-          
+      {/* Scrollable Content in the middle */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Group Info */}
+        <div className="p-6 flex flex-col items-center">
+          <div className="relative w-20 h-20 mb-4">
+            <img
+              src={getImageSrc(selectedChat.image)}
+              alt={selectedChat.name}
+              className="
+                w-full
+                h-full
+                rounded-full
+                object-cover
+                ring-4
+                ring-pink-500
+                shadow-lg
+              "
+            />
+          </div>
+          <h2 className="text-lg font-bold text-pink-500 mb-2 text-center">
+            {selectedChat.name}
+          </h2>
+          <p className="text-sm text-gray-300 text-center px-2">
+            {selectedChat.description}
+          </p>
         </div>
 
-        <div className="bg-gray-900/50 rounded-xl backdrop-blur-lg shadow-2xl 
-          border border-gray-800/50 hover:border-pink-500/30 transition-all duration-300">
-          {activeTab === "users" ? renderUsers() : renderGroups()}
+        {/* Creator Details */}
+        {creatorDetails && (
+          <div className="px-6 py-4 border-t border-pink-500">
+            <h4 className="font-semibold text-pink-500 mb-4">Created by</h4>
+            <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-pink-500/10 transition-colors">
+              <img
+                src={getImageSrc(creatorDetails.image)}
+                alt={creatorDetails.name}
+                className="
+                  w-12
+                  h-12
+                  rounded-full
+                  object-cover
+                  ring-2
+                  ring-pink-500
+                  shadow-md
+                "
+              />
+              <div>
+                <h5 className="font-medium text-white">{creatorDetails.name}</h5>
+                <p className="text-sm text-gray-400">{creatorDetails.role}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Group Members */}
+        <div className="px-6 py-4 border-t border-pink-500">
+          <h4 className="font-semibold text-pink-500 mb-4">
+            Members ({groupMembers.length})
+          </h4>
+          <div className="space-y-3">
+            {groupMembers.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-3 p-3 rounded-xl hover:bg-pink-500/10 transition-colors"
+              >
+                <img
+                  src={getImageSrc(member.image)}
+                  alt={member.name}
+                  className="
+                    w-12
+                    h-12
+                    rounded-full
+                    object-cover
+                    ring-2
+                    ring-pink-500
+                    shadow-md
+                  "
+                />
+                <div>
+                  <h5 className="font-medium text-white">{member.name}</h5>
+                  <p className="text-sm text-gray-400">{member.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {isProfileOpen && selectedItem && (
-        <UserProfileModal
-          selectedItem={selectedItem}
-          onClose={() => setIsProfileOpen(false)}
-          onEdit={handleEdit}
-        />
-      )}
-
-      {isEditProfileOpen && selectedItem && (
-        <EditUserProfileModal
-          selectedItem={selectedItem}
-          onClose={() => {
-            setIsEditProfileOpen(false);
-            setIsProfileOpen(false);
-          }}
-          fetchUsers={fetchUsers}
-        />
-      )}
-
-      {isDeleteModalOpen && selectedItem && (
-        <DeleteUserModal
-          selectedItem={selectedItem}
-          closeDeleteModal={() => setIsDeleteModalOpen(false)}
-          fetchUsers={fetchUsers}
-        />
-      )}
-
-      {isGroupProfileOpen && selectedItem && (
-        <GroupProfileModal
-          selectedGroup={selectedItem}
-          onClose={() => setIsGroupProfileOpen(false)}
-          onEdit={() => handleGroupEdit(selectedItem)}
-        />
-      )}
-
-      {isEditGroupOpen && selectedItem && (
-        <EditGroupModal
-          selectedGroup={selectedItem}
-          onClose={() => {
-            setIsEditGroupOpen(false);
-            setIsGroupProfileOpen(false);
-          }}
-          fetchGroups={fetchGroups}
-        />
-      )}
-
-      {isDeleteGroupModalOpen && selectedItem && (
-        <DeleteGroupModal
-          selectedGroup={selectedItem}
-          onClose={() => setIsDeleteGroupModalOpen(false)}
-          fetchGroups={fetchGroups}
-        />
-      )}
-
-      <ToastContainer />
+      {/* Invite Button */}
+      <div className="p-4 border-t border-pink-500">
+        <button
+          onClick={onInviteClick}
+          className="
+            w-full
+            py-2
+            px-4
+            bg-pink-500
+            text-white
+            rounded-lg
+            hover:bg-pink-600
+            transition-colors
+            duration-200
+            flex
+            items-center
+            justify-center
+            gap-2
+          "
+        >
+          <FaUserPlus className="w-5 h-5" />
+          <span>Invite Members</span>
+        </button>
+      </div>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default GroupDetailsPanel;

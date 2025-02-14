@@ -4,7 +4,7 @@ import axios from "axios";
 import { useContextMenu } from "react-contexify";
 import "react-contexify/dist/ReactContexify.css";
 import MessageList from "../components/MessageList";
-import { Search, Users, Bell, Phone, Video } from "lucide-react";
+import { Search, Users, Phone, Video, X } from "lucide-react";
 import MessageInput from "../components/MessageInput";
 import MessageContext from "../components/MessageContext";
 
@@ -23,8 +23,8 @@ const ChatArea = ({
   userId,
   currentUser,
   onNewMessage = () => {},
-  showGroupDetails,    // New prop to control group details overlay
-  onToggleDetails      // New prop to toggle group details overlay
+  showGroupDetails,    // Toggles the GroupDetailsPanel in StudentDashboard
+  onToggleDetails      // Toggles the GroupDetailsPanel in StudentDashboard
 }) => {
   const [messages, setMessages] = useState([]);
   const [filteredMessages, setFilteredMessages] = useState([]);
@@ -38,12 +38,11 @@ const ChatArea = ({
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
+  const [showSearchBar, setShowSearchBar] = useState(false); // New state for toggling search
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  const { show } = useContextMenu({
-    id: MENU_ID,
-  });
+  const { show } = useContextMenu({ id: MENU_ID });
 
   const scrollToBottom = (behavior = "smooth") => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -51,13 +50,11 @@ const ChatArea = ({
 
   const fetchMessages = async (pageNum = 1, scrollToEnd = true) => {
     if (!selectedChat?._id || loading) return;
-
     try {
       setLoading(true);
       const response = await axios.get(
         `http://localhost:5000/api/messages/${selectedChat._id}?page=${pageNum}&limit=${MESSAGES_PER_PAGE}`
       );
-
       const newMessages = response.data;
       if (pageNum === 1) {
         setMessages(newMessages);
@@ -69,7 +66,6 @@ const ChatArea = ({
         setMessages((prev) => [...newMessages, ...prev]);
         setFilteredMessages((prev) => [...newMessages, ...prev]);
       }
-
       setHasMore(newMessages.length === MESSAGES_PER_PAGE);
     } catch (error) {
       console.error("Error loading messages:", error);
@@ -101,6 +97,7 @@ const ChatArea = ({
       }
       setShowEmojiPicker(false);
     };
+    // eslint-disable-next-line
   }, [selectedChat, userId]);
 
   useEffect(() => {
@@ -165,6 +162,7 @@ const ChatArea = ({
       socket.off("messageEdited", handleMessageEdited);
       socket.off("messageRead", handleMessageRead);
     };
+    // eslint-disable-next-line
   }, [selectedChat, userId, onNewMessage]);
 
   useEffect(() => {
@@ -345,19 +343,18 @@ const ChatArea = ({
                 <h2 className="text-xl font-bold text-white tracking-wide">
                   {selectedChat.name}
                 </h2>
-                <p className="text-sm text-gray-400">
-                  {selectedChat.members?.length || 0} members • Active now
-                </p>
               </div>
             </div>
             <div className="flex gap-4">
-              <button className="p-2 rounded-full bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-300 text-purple-400 hover:text-purple-300">
-                <Phone size={20} />
+              
+              {/* Search toggle button */}
+              <button
+                onClick={() => setShowSearchBar((prev) => !prev)}
+                className="p-2 rounded-full bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-300 text-purple-400 hover:text-purple-300"
+              >
+                {showSearchBar ? <X size={20} /> : <Search size={20} />}
               </button>
-              <button className="p-2 rounded-full bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-300 text-purple-400 hover:text-purple-300">
-                <Video size={20} />
-              </button>
-              {/* Group Details Toggle Button */}
+              {/* Users icon to toggle GroupDetailsPanel */}
               <button
                 onClick={onToggleDetails}
                 className={`p-2 rounded-full transition-all duration-300 ${
@@ -370,21 +367,22 @@ const ChatArea = ({
               </button>
             </div>
           </div>
-          
-          {/* Search Bar */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search in conversation..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-gray-300 placeholder-gray-500 transition-all duration-300"
-            />
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-              size={18}
-            />
-          </div>
+          {/* Conditionally render search bar */}
+          {showSearchBar && (
+            <div className="relative transition-all duration-300">
+              <input
+                type="text"
+                placeholder="Search in conversation..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-gray-300 placeholder-gray-500 transition-all duration-300"
+              />
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                size={18}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -436,38 +434,12 @@ const ChatArea = ({
         />
       </div>
 
+      {/* Context Menu for editing/deleting messages */}
       <MessageContext
         menuId={MENU_ID}
         onStartEditing={startEditing}
         onDeleteMessage={handleDeleteMessage}
       />
-
-      {/* Group Details Overlay */}
-      {showGroupDetails && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white w-96 rounded-lg shadow-lg p-6 relative">
-            <button
-              onClick={onToggleDetails}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-            >
-              X
-            </button>
-            <h2 className="text-2xl font-bold mb-4">{selectedChat?.name}</h2>
-            {selectedChat?.description && (
-              <p className="mb-4">{selectedChat.description}</p>
-            )}
-            <h3 className="text-lg font-semibold mb-2">Members</h3>
-            <ul className="list-disc ml-5">
-              {selectedChat?.members &&
-                selectedChat.members.map((member, index) => (
-                  <li key={index}>
-                    {typeof member === "object" ? member.name : member}
-                  </li>
-                ))}
-            </ul>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

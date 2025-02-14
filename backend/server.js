@@ -11,6 +11,7 @@ const multer = require("multer");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const axios = require("axios");
+const groupsRouter = require("./routes/groups");
 
 dotenv.config();
 const app = express();
@@ -49,6 +50,7 @@ mongoose
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/groups", groupsRouter);
 
 // API to send a message
 app.post("/api/messages", async (req, res) => {

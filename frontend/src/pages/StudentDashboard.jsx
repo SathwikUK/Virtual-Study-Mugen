@@ -1,4 +1,3 @@
-// StudentDashboard.jsx
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
@@ -9,6 +8,9 @@ import Modal from "./Modal";
 import InviteGroupModal from "./InviteGroupModal";
 import GroupDetailsPanel from "../components/GroupDetailsPanel";
 import VsmChat from "./VsmChat";
+
+// Import a background image for the chat placeholder
+import chatBg from "../assets/vsm3.jpg";
 
 // Stub component for OpenAI panel – replace with your actual component
 const OpenAI = () => (
@@ -24,17 +26,14 @@ const StudentDashboard = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDetails, setNewGroupDetails] = useState("");
-
   // Notifications
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
-
   // Group details panel
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [creatorDetails, setCreatorDetails] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
-
   // Messages & user info
   const [currentMessage, setCurrentMessage] = useState("");
   const [messages, setMessages] = useState([]);
@@ -43,10 +42,8 @@ const StudentDashboard = () => {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState("");
   const [newGroupImage, setNewGroupImage] = useState(null);
-
   const [searchTerm, setSearchTerm] = useState("");
-
-  // This state controls whether the OpenAI middle panel is visible.
+  // This state controls whether the OpenAI (VsmChat) middle panel is visible.
   const [showOpenAI, setShowOpenAI] = useState(false);
 
   // ---------------- FETCH USER PROFILE ----------------
@@ -57,9 +54,10 @@ const StudentDashboard = () => {
         toast.error("Authentication required");
         return;
       }
-      const response = await axios.get("http://localhost:5000/api/auth/profile", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "http://localhost:5000/api/auth/profile",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setUserName(response.data.name || "User");
       setUserId(response.data._id);
     } catch (error) {
@@ -73,13 +71,16 @@ const StudentDashboard = () => {
     try {
       if (!userId) return;
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/auth/notifications", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
+      const response = await axios.get(
+        "http://localhost:5000/api/auth/notifications",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        }
+      );
       if (response.data.notifications) {
         setNotifications(response.data.notifications);
       }
@@ -93,9 +94,10 @@ const StudentDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !userId) return;
-      const response = await axios.get("http://localhost:5000/api/auth/groups", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "http://localhost:5000/api/auth/groups",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       if (response.data.groups) {
         setChats(response.data.groups);
       }
@@ -110,9 +112,10 @@ const StudentDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !userId) return;
-      const response = await axios.get("http://localhost:5000/api/auth/groups", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "http://localhost:5000/api/auth/groups",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       if (response.data.groups) {
         setChats(response.data.groups);
       }
@@ -126,9 +129,10 @@ const StudentDashboard = () => {
     try {
       if (!userId) return;
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/auth/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "http://localhost:5000/api/auth/notifications",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       if (response.data.notifications) {
         setNotifications(response.data.notifications);
         await refreshGroups();
@@ -148,9 +152,10 @@ const StudentDashboard = () => {
         if (cachedMember) {
           return JSON.parse(cachedMember);
         }
-        const response = await fetch(`http://localhost:5000/api/auth/user/${memberId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetch(
+          `http://localhost:5000/api/auth/user/${memberId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         if (response.ok) {
           const userData = await response.json();
           const memberData = {
@@ -160,7 +165,10 @@ const StudentDashboard = () => {
             status: "online",
             role: userData.role,
           };
-          sessionStorage.setItem(`member-${memberId}`, JSON.stringify(memberData));
+          sessionStorage.setItem(
+            `member-${memberId}`,
+            JSON.stringify(memberData)
+          );
           return memberData;
         }
         return null;
@@ -184,7 +192,7 @@ const StudentDashboard = () => {
           if (response.ok) {
             const userData = await response.json();
             setCreatorDetails({
-              id: selectedChat.createdBy,
+              _id: selectedChat.createdBy,
               name: userData.name,
               image: userData.image,
               status: "online",
@@ -236,7 +244,7 @@ const StudentDashboard = () => {
   const toggleNotifications = () => setShowNotifications((prev) => !prev);
   const toggleGroupDetails = () => setShowGroupDetails((prev) => !prev);
 
-  // ---------------- ADD GROUP EXAMPLE ----------------
+  // ---------------- ADD GROUP ----------------
   const handleAddGroup = async () => {
     if (!newGroupName.trim()) {
       toast.error("Group name is required!");
@@ -324,10 +332,43 @@ const StudentDashboard = () => {
     }
   };
 
+  // Prepare currentUser for GroupDetailsPanel
+  const currentUser = useMemo(
+    () => ({ _id: userId, name: userName }),
+    [userId, userName]
+  );
+
+  // Helper function to render placeholder for ChatArea when no chat is selected.
+  // If no chats are loaded, show a background image.
+  // Otherwise, show a default chat logo.
+  const renderChatPlaceholder = () => {
+    if (chats.length === 0) {
+      return (
+        <div
+          className="flex items-center justify-center h-full bg-cover bg-center"
+          style={{ backgroundImage: `url(${chatBg})` }}
+        ></div>
+      );
+    }
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-black">
+        <span className="text-white text-6xl">💬</span>
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50">
-      {/* SIDEBAR (always 30%) */}
-      <div className="w-[30%] bg-gradient-to-b from-amber-200 to-purple-300 text-black border-r flex-shrink-0 overflow-hidden">
+      {/* Sidebar */}
+      <div
+        className={
+          isSidebarOpen
+            ? "w-[30%] bg-gradient-to-b from-amber-200 to-purple-300 text-black border-r flex-shrink-0 overflow-hidden transition-all duration-300"
+            : showOpenAI
+            ? "w-[5%] bg-gradient-to-b from-amber-200 to-purple-300 text-black border-r flex-shrink-0 overflow-hidden transition-all duration-300"
+            : "w-20 bg-gradient-to-b from-amber-200 to-purple-300 text-black border-r flex-shrink-0 overflow-hidden transition-all duration-300"
+        }
+      >
         <Sidebar
           isOpen={isSidebarOpen}
           onToggle={toggleSidebar}
@@ -342,43 +383,63 @@ const StudentDashboard = () => {
           onToggleNotifications={toggleNotifications}
           onStatusUpdate={handleNotificationUpdate}
           onGroupUpdate={setChats}
-          // Pass the OpenAI toggle props:
           showOpenAI={showOpenAI}
           onToggleOpenAI={() => setShowOpenAI((prev) => !prev)}
         />
       </div>
 
+      {/* Main Content */}
       {showOpenAI ? (
-        // Three-column layout when OpenAI is active:
-        <>
-          {/* Middle (OpenAI Panel - 40%) */}
-          <div className="w-[40%] border-r border-gray-200 flex-shrink-0 overflow-hidden">
-            <VsmChat />
-          </div>
-          {/* RIGHT (ChatArea - 30%) */}
-          <div className="w-[30%] transition-all duration-300">
-            {selectedChat ? (
-              <ChatArea
-                selectedChat={selectedChat}
-                currentMessage={currentMessage}
-                setCurrentMessage={setCurrentMessage}
-                handleSendMessage={handleSendMessage}
-                userId={userId}
-                isTyping={isTyping}
-                messages={messages}
-                onlineUsers={onlineUsers}
-                showGroupDetails={showGroupDetails}
-                onToggleDetails={toggleGroupDetails}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full bg-black">
-                <span className="text-white text-6xl">💬</span>
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        // Default two-column layout: Sidebar (30%) and ChatArea (70%)
+        isSidebarOpen ? (
+          <>
+            <div className="w-[40%] border-r border-gray-200 flex-shrink-0 overflow-hidden transition-all duration-300">
+              <VsmChat />
+            </div>
+            <div className="w-[30%] transition-all duration-300">
+              {selectedChat ? (
+                <ChatArea
+                  selectedChat={selectedChat}
+                  currentMessage={currentMessage}
+                  setCurrentMessage={setCurrentMessage}
+                  handleSendMessage={handleSendMessage}
+                  userId={userId}
+                  isTyping={isTyping}
+                  messages={messages}
+                  onlineUsers={onlineUsers}
+                  showGroupDetails={showGroupDetails}
+                  onToggleDetails={toggleGroupDetails}
+                />
+              ) : (
+                renderChatPlaceholder()
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="w-[60%] border-r border-gray-200 flex-shrink-0 overflow-hidden transition-all duration-300">
+              <VsmChat />
+            </div>
+            <div className="w-[35%] transition-all duration-300">
+              {selectedChat ? (
+                <ChatArea
+                  selectedChat={selectedChat}
+                  currentMessage={currentMessage}
+                  setCurrentMessage={setCurrentMessage}
+                  handleSendMessage={handleSendMessage}
+                  userId={userId}
+                  isTyping={isTyping}
+                  messages={messages}
+                  onlineUsers={onlineUsers}
+                  showGroupDetails={showGroupDetails}
+                  onToggleDetails={toggleGroupDetails}
+                />
+              ) : (
+                renderChatPlaceholder()
+              )}
+            </div>
+          </>
+        )
+      ) : isSidebarOpen ? (
         <div className="w-[70%] transition-all duration-300">
           {selectedChat ? (
             <ChatArea
@@ -394,10 +455,26 @@ const StudentDashboard = () => {
               onToggleDetails={toggleGroupDetails}
             />
           ) : (
-            // Placeholder with black background and an icon
-            <div className="flex flex-col items-center justify-center h-full bg-black">
-              <span className="text-white text-6xl">💬</span>
-            </div>
+            renderChatPlaceholder()
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 transition-all duration-300">
+          {selectedChat ? (
+            <ChatArea
+              selectedChat={selectedChat}
+              currentMessage={setCurrentMessage}
+              setCurrentMessage={setCurrentMessage}
+              handleSendMessage={handleSendMessage}
+              userId={userId}
+              isTyping={isTyping}
+              messages={messages}
+              onlineUsers={onlineUsers}
+              showGroupDetails={showGroupDetails}
+              onToggleDetails={toggleGroupDetails}
+            />
+          ) : (
+            renderChatPlaceholder()
           )}
         </div>
       )}
@@ -410,6 +487,14 @@ const StudentDashboard = () => {
         creatorDetails={creatorDetails}
         groupMembers={groupMembers}
         onInviteClick={() => setShowInviteModal(true)}
+        currentUser={currentUser}
+        onGroupDeleted={(deletedGroupId) => {
+          setChats(chats.filter((chat) => chat._id !== deletedGroupId));
+          if (selectedChat && selectedChat._id === deletedGroupId) {
+            setSelectedChat(null);
+          }
+          toast.success("Group successfully deleted");
+        }}
       />
 
       {/* Modal for Creating New Group */}
