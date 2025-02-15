@@ -1,13 +1,12 @@
 const multer = require('multer');
 
-const storage = multer.memoryStorage(); // Store files in memory
+const storage = multer.memoryStorage(); // Store files in memory as a Buffer
 
-// Set a file size limit (e.g., 5MB)
 const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
+    fileSize: 5 * 1024 * 1024, // 5MB file size limit
   },
-}).single('image');  // Use 'image' for the input field
+}).single('image'); // This middleware handles single file upload with field name "image"
 
 module.exports = upload;

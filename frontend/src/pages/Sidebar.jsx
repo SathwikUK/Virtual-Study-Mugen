@@ -1,4 +1,3 @@
-// Sidebar.jsx
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   FaBars,
@@ -9,23 +8,26 @@ import {
   FaBell,
   FaHome,
   FaSignOutAlt,
+  FaTimes,
+  FaEdit,
+  FaSave,
 } from "react-icons/fa";
 import io from "socket.io-client";
-import NotificationsPanel from "../components/NotificationsPanel";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import NotificationsPanel from "../components/NotificationsPanel";
+import openAiGif from "../assets/hina.gif";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-// Example GIF import (adjust path/name as needed)
-import openAiGif from "../assets/hina.gif"; // e.g., "src/assets/hina.gif"
-
-// Create socket instance (outside the component to avoid re-creation)
+// ----- SOCKET INSTANCE -----
 const socket = io("http://localhost:5000", {
   reconnectionDelay: 1000,
   reconnectionAttempts: 5,
   transports: ["websocket"],
 });
 
-// Create an axios instance with default settings
+// ----- AXIOS INSTANCE -----
 const api = axios.create({
   baseURL: "http://localhost:5000",
   headers: {
@@ -52,17 +54,25 @@ const Sidebar = ({
   onToggleOpenAI,
 }) => {
   const navigate = useNavigate();
+
+  // User Profile Info
   const [userName, setUserName] = useState("Loading...");
+  const [userEmail, setUserEmail] = useState("");
   const [userProfileImage, setUserProfileImage] = useState(null);
+
+  // Chat/Sidebar State
   const [unreadCounts, setUnreadCounts] = useState({});
   const [activeChat, setActiveChat] = useState(null);
   const [localChats, setLocalChats] = useState(chats || []);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Profile Modal
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
   // Keep track of component mount time to manage spinner vs. "No chats" message
   const mountTimeRef = useRef(Date.now());
 
-  // ----- Fetch Groups -----
+  // -------------------- FETCH GROUPS --------------------
   const fetchGroups = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -82,7 +92,7 @@ const Sidebar = ({
     }
   }, [userId]);
 
-  // ----- Fetch Unread Counts -----
+  // -------------------- FETCH UNREAD COUNTS --------------------
   const fetchUnreadCounts = useCallback(async () => {
     if (!userId) return;
     try {
@@ -97,7 +107,7 @@ const Sidebar = ({
     }
   }, [userId]);
 
-  // ----- Fetch User Profile -----
+  // -------------------- FETCH USER PROFILE --------------------
   const fetchUserProfile = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -107,13 +117,22 @@ const Sidebar = ({
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setUserName(response.data.name || "User");
+      const userData = response.data;
+      setUserName(userData.name || "User");
+      setUserEmail(userData.email || "");
 
-      if (response.data.image?.data) {
-        const base64String = btoa(
-          String.fromCharCode.apply(null, new Uint8Array(response.data.image.data))
-        );
+      if (userData.image?.data) {
+        // Convert buffer to base64
+        const bytes = new Uint8Array(userData.image.data);
+        const chunkSize = 0x8000; // 32768 bytes
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+        }
+        const base64String = window.btoa(binary);
         setUserProfileImage(`data:image/png;base64,${base64String}`);
+      } else {
+        setUserProfileImage(null);
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -121,7 +140,7 @@ const Sidebar = ({
     }
   }, []);
 
-  // ----- Socket Event Handlers -----
+  // -------------------- SOCKET HANDLERS --------------------
   const handleNewMessage = useCallback(
     (message) => {
       // If a new message is sent to a chat that's not currently active, increment unread
@@ -149,7 +168,7 @@ const Sidebar = ({
     [userId]
   );
 
-  // ----- Initial Setup -----
+  // -------------------- INITIAL SETUP --------------------
   useEffect(() => {
     Promise.all([fetchGroups(), fetchUnreadCounts(), fetchUserProfile()]);
 
@@ -162,7 +181,7 @@ const Sidebar = ({
     };
   }, [fetchGroups, fetchUnreadCounts, fetchUserProfile]);
 
-  // ----- Socket Setup -----
+  // -------------------- SOCKET SETUP --------------------
   useEffect(() => {
     if (userId) {
       socket.connect();
@@ -179,7 +198,7 @@ const Sidebar = ({
     }
   }, [userId, handleNewMessage, handleMessagesRead]);
 
-  // ----- Select Chat -----
+  // -------------------- SELECT CHAT --------------------
   const handleChatSelection = useCallback(
     (chat) => {
       setActiveChat(chat._id);
@@ -191,24 +210,25 @@ const Sidebar = ({
     [userId, onSelectChat]
   );
 
-  // ----- Filter Chats by Search Term -----
+  // -------------------- FILTER CHATS BY SEARCH --------------------
   const filteredChats = useMemo(() => {
     return localChats.filter((chat) =>
       chat.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [localChats, searchTerm]);
 
-  // ----- Handle Logout -----
+  // -------------------- LOGOUT --------------------
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
 
-  // Decide when to show spinner in the chat list area
+  // Show spinner if still loading or if no chats have loaded within 3s
   const timeSinceMount = Date.now() - mountTimeRef.current;
   const showSpinnerForChats =
     isLoading || (localChats.length === 0 && timeSinceMount < 3000);
 
+  // -------------------- RENDER --------------------
   return (
     <div className="relative p-4 h-full flex flex-col bg-black text-white shadow-md rounded-lg overflow-visible z-10">
       {/* Top Section */}
@@ -325,14 +345,18 @@ const Sidebar = ({
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="font-medium text-gray-100 truncate">{chat.name}</p>
+                        <p className="font-medium text-gray-100 truncate">
+                          {chat.name}
+                        </p>
                         {unreadCounts[chat._id] > 0 && chat._id !== activeChat && (
                           <span className="bg-red-600 text-white rounded-full px-2 py-0.5 text-xs">
                             {unreadCounts[chat._id]}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-300 truncate">{chat.lastMessage}</p>
+                      <p className="text-sm text-gray-300 truncate">
+                        {chat.lastMessage}
+                      </p>
                     </div>
                   </li>
                 ))}
@@ -350,10 +374,16 @@ const Sidebar = ({
       {/* Bottom Section: User Profile + Logout */}
       <div
         className={`mt-auto flex ${
-          isOpen ? "flex-row items-center justify-between" : "flex-col items-center space-y-2"
+          isOpen
+            ? "flex-row items-center justify-between"
+            : "flex-col items-center space-y-2"
         }`}
       >
-        <div className="flex items-center gap-2">
+        {/* Profile Image & Name */}
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => setShowProfileModal(true)}
+        >
           <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-600 ring-2 ring-purple-500">
             {userProfileImage ? (
               <img
@@ -366,8 +396,12 @@ const Sidebar = ({
               <FaUserCircle className="text-gray-300 text-3xl" />
             )}
           </div>
-          {isOpen && <div className="font-medium text-gray-100 truncate">{userName}</div>}
+          {isOpen && (
+            <div className="font-medium text-gray-100 truncate">{userName}</div>
+          )}
         </div>
+
+        {/* Logout */}
         <button
           onClick={handleLogout}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-red-600 to-purple-600 hover:opacity-80 transition duration-200"
@@ -384,7 +418,23 @@ const Sidebar = ({
         </div>
       )}
 
-      {/* Inline style to hide scrollbar (Chrome/Firefox/IE) */}
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <UserProfileModal
+          user={{
+            name: userName,
+            email: userEmail,
+            image: userProfileImage,
+          }}
+          onClose={() => setShowProfileModal(false)}
+          onProfileUpdated={fetchUserProfile}
+        />
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer />
+
+      {/* Inline style to hide scrollbar */}
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
@@ -399,3 +449,196 @@ const Sidebar = ({
 };
 
 export default Sidebar;
+
+/**
+ * UserProfileModal component
+ * Displays user info (name, email, image) and allows editing.
+ * Uses PUT /api/auth/users/:email to update user profile.
+ * Shows a spinner on save for 1s before displaying a success toast.
+ */
+const UserProfileModal = ({ user, onClose, onProfileUpdated }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [updatedName, setUpdatedName] = useState(user.name || "");
+  const [updatedRole, setUpdatedRole] = useState("student"); // default or from user if available
+  const [updatedImage, setUpdatedImage] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Handle file selection
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setUpdatedImage(e.target.files[0]);
+    }
+  };
+
+  // Save changes: call the update endpoint with a simulated 1s delay
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setErrorMsg("No authorization token found.");
+        return;
+      }
+      // Use FormData for image upload
+      const formData = new FormData();
+      formData.append("name", updatedName);
+      formData.append("role", updatedRole);
+      if (updatedImage) {
+        formData.append("image", updatedImage);
+      }
+
+      setIsUpdating(true);
+      await axios.put(`http://localhost:5000/api/auth/users/${user.email}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // Simulate a 1-second loading period
+      setTimeout(() => {
+        toast.success("Profile updated successfully!");
+        onProfileUpdated && onProfileUpdated();
+        setIsUpdating(false);
+        setIsEditing(false);
+        onClose();
+      }, 1000);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setErrorMsg(error.response?.data?.message || "Failed to update profile");
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
+      <div className="bg-gray-800 p-6 rounded-lg w-80 relative shadow-xl">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-300 hover:text-white"
+        >
+          <FaTimes />
+        </button>
+
+        <h2 className="text-2xl font-bold mb-4 text-center text-purple-300">
+          User Profile
+        </h2>
+
+        {errorMsg && (
+          <p className="text-red-400 text-sm mb-2 text-center">{errorMsg}</p>
+        )}
+
+        {/* Display or edit image */}
+        <div className="flex justify-center mb-4">
+          {user.image && !updatedImage ? (
+            <img
+              src={user.image}
+              alt="User Avatar"
+              className="w-20 h-20 rounded-full object-cover ring-2 ring-purple-500"
+            />
+          ) : updatedImage ? (
+            <img
+              src={URL.createObjectURL(updatedImage)}
+              alt="New Avatar"
+              className="w-20 h-20 rounded-full object-cover ring-2 ring-purple-500"
+            />
+          ) : (
+            <FaUserCircle className="text-6xl text-gray-400" />
+          )}
+        </div>
+
+        {/* If editing, show file input */}
+        {isEditing && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Update Profile Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="w-full text-sm text-gray-400"
+            />
+          </div>
+        )}
+
+        {/* Name */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Name
+          </label>
+          {isEditing ? (
+            <input
+              type="text"
+              value={updatedName}
+              onChange={(e) => setUpdatedName(e.target.value)}
+              className="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
+            />
+          ) : (
+            <p className="text-gray-200">{user.name}</p>
+          )}
+        </div>
+
+        {/* Email (read-only) */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Email
+          </label>
+          <p className="text-gray-200">{user.email}</p>
+        </div>
+
+        {/* Role (optional) */}
+        {isEditing ? (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Role
+            </label>
+            <select
+              value={updatedRole}
+              onChange={(e) => setUpdatedRole(e.target.value)}
+              className="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
+            >
+              <option value="student">Student</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        ) : null}
+
+        {/* Bottom buttons */}
+        <div className="flex justify-end gap-4 mt-6">
+          {isEditing ? (
+            <>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-600 hover:bg-gray-500 text-white"
+                title="Cancel"
+              >
+                <FaTimes />
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isUpdating}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-green-600 hover:bg-green-500 text-white"
+                title="Save"
+              >
+                {isUpdating ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-white"></div>
+                ) : (
+                  <FaSave />
+                )}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white"
+              title="Edit"
+            >
+              <FaEdit />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

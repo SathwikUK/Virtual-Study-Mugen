@@ -5,6 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 import Sidebar from "./Sidebar";
 import ChatArea from "./ChatArea";
 import Modal from "./Modal";
+import {FaComments } from "react-icons/fa"
 import InviteGroupModal from "./InviteGroupModal";
 import GroupDetailsPanel from "../components/GroupDetailsPanel";
 import VsmChat from "./VsmChat";
@@ -352,13 +353,15 @@ const StudentDashboard = () => {
     }
     return (
       <div className="flex flex-col items-center justify-center h-full bg-black">
-        <span className="text-white text-6xl">💬</span>
+       <span className="text-purple-500 text-8xl">
+      <FaComments />
+    </span>
       </div>
     );
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50">
+    <div className="flex h-screen overflow-hidden bg-blue-700">
       {/* Sidebar */}
       <div
         className={
