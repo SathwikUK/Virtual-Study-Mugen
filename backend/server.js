@@ -48,6 +48,11 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB Connection Failed:", err));
 
+  app.get('/', (req, res) => {
+    return res.send('Hello world!');
+});
+
+
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/groups", groupsRouter);
