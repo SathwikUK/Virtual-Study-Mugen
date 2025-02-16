@@ -110,8 +110,8 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       {_id: user._id, email: user.email, role: user.role }, // Add the role to the token payload
       process.env.JWT_SECRET,
-      { expiresIn: "1h" } // Optional: Set token expiration
-    );
+      { expiresIn: "6h" } // Optional: Set token expiration
+    );
     return res.json({ token, role: user.role }); // Send role along with token
   } else {
     return res.status(400).json({ message: "Invalid credentials" });
@@ -266,6 +266,51 @@ exports.searchUsers = async (req, res) => {
   }
 };
 
+exports.updateUser = async (req, res) => {
+  try {
+    const { email } = req.params;
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized: No token provided" });
+    }
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Ensure the token email matches the email in the params (or allow admin override, if desired)
+    if (decoded.email !== email) {
+      return res.status(403).json({ message: "You are not authorized to update this profile" });
+    }
+
+    const { name, password, role } = req.body;
+    const image = req.file; // This is provided by Multer if an image is uploaded
+
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update provided fields
+    if (name) user.name = name;
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+    if (role) user.role = role;
+    if (image) {
+      // Save the image buffer (assumes image is stored as a Buffer in MongoDB)
+      user.image = image.buffer;
+    }
+
+    // Save updated user
+    await user.save();
+
+    res.status(200).json({ message: "User updated successfully", user });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ message: "Error updating user profile", error: error.message });
+  }
+};
+
 // Send group invite
 exports.sendGroupInvite = async (req, res) => {
   try {
@@ -337,51 +382,6 @@ exports.respondToGroupInvite = async (req, res) => {
   } catch (error) {
     console.error('Error responding to group invite:', error);
     res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-exports.updateUser = async (req, res) => {
-  try {
-    const { email } = req.params;
-    const token = req.header("Authorization")?.replace("Bearer ", "");
-    if (!token) {
-      return res.status(401).json({ message: "Unauthorized: No token provided" });
-    }
-
-    // Verify the token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Ensure the token email matches the email in the params (or allow admin override, if desired)
-    if (decoded.email !== email) {
-      return res.status(403).json({ message: "You are not authorized to update this profile" });
-    }
-
-    const { name, password, role } = req.body;
-    const image = req.file; // This is provided by Multer if an image is uploaded
-
-    // Find the user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Update provided fields
-    if (name) user.name = name;
-    if (password) {
-      user.password = await bcrypt.hash(password, 10);
-    }
-    if (role) user.role = role;
-    if (image) {
-      // Save the image buffer (assumes image is stored as a Buffer in MongoDB)
-      user.image = image.buffer;
-    }
-
-    // Save updated user
-    await user.save();
-
-    res.status(200).json({ message: "User updated successfully", user });
-  } catch (error) {
-    console.error("Error updating user:", error);
-    res.status(500).json({ message: "Error updating user profile", error: error.message });
   }
 };
 

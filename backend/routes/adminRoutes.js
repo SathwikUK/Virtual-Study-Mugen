@@ -22,4 +22,7 @@ router.put('/groups/:id', upload, groupController.updateGroup);
 // Route to delete a group
 router.delete('/groups/:id', groupController.deleteGroup);
 
+
+
+
 module.exports = router;

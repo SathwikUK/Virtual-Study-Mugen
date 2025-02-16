@@ -39,22 +39,30 @@ const Login = () => {
     setMessage("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
-        email,
-        password,
-        role,
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        {
+          email,
+          password,
+          role,
+        }
+      );
 
-      const token = response.data.token;
+      const { token, role: serverRole } = response.data;
+
+      // Validate that the returned role matches the selected role
+      if (serverRole !== role) {
+        setMessage("Invalid credentials for the selected role.");
+        setLoading(false);
+        return;
+      }
+
       localStorage.setItem("token", token);
-      const userRole = response.data.role;
 
-      if (userRole === "admin") {
+      if (serverRole === "admin") {
         navigate("/admin-dashboard");
-      } else if (userRole === "student") {
+      } else if (serverRole === "student") {
         navigate("/dashboard");
-      } else {
-        setMessage("Invalid role.");
       }
     } catch (error) {
       setMessage(error.response?.data?.message || "Login failed");
@@ -64,26 +72,33 @@ const Login = () => {
   };
 
   return (
-    // Parent container: relative & overflow-hidden for glowing backgrounds
+    // Outer container with glowing backgrounds and relative positioning
     <div className="min-h-screen flex items-center justify-center bg-gray-1000 p-6 relative overflow-hidden">
       {/* Glowing background blobs */}
       <div className="absolute top-[-15%] left-[-15%] w-[400px] h-[400px] bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-30 animate-pulse" />
       <div className="absolute bottom-[30%] right-[50%] w-[200px] h-[200px] bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full blur-3xl opacity-30 animate-ping" />
       <div className="absolute bottom-[-15%] right-[-15%] w-[400px] h-[400px] bg-gradient-to-br from-purple-600 to-blue-600 rounded-full blur-3xl opacity-30 animate-pulse" />
 
-      {/* Main Content Container (above the glows) */}
+      {/* Background image for small devices only */}
+      <div
+        className="absolute inset-0 bg-cover bg-center md:hidden"
+        style={{ backgroundImage: `url(${loginImage})`, opacity: 0.15 }}
+      ></div>
+
+      {/* Back to Home button */}
       <button
         onClick={() => navigate("/")}
         type="button"
-        className="absolute top-6 left-6 flex items-center text-blue-400 hover:text-blue-600 transition duration-300 z-10"
+        className="absolute top-6 left-6 flex items-center text-blue-400 hover:text-blue-600 transition duration-300 z-30 bg-gray-800 bg-opacity-70 px-3 py-2 rounded-lg"
       >
         <FaArrowLeft className="mr-2" />
         Back to Home
       </button>
 
-      <div className="flex flex-col md:flex-row items-center w-full max-w-5xl bg-gray-1000 rounded-xl overflow-hidden gap-10 relative z-10">
-        {/* Left Div - Image */}
-        <div className="md:w-1/2 p-12 flex items-center justify-center">
+      {/* Main Content Container */}
+      <div className="flex flex-col md:flex-row items-center w-full max-w-5xl bg-gray-1000 rounded-xl overflow-hidden gap-10 relative z-20 shadow-lg">
+        {/* Left Div - Image (visible only on md and larger screens) */}
+        <div className="hidden md:flex md:w-1/2 p-12 items-center justify-center">
           <img
             src={loginImage}
             alt="Login Illustration"
@@ -92,7 +107,7 @@ const Login = () => {
         </div>
 
         {/* Right Div - Form */}
-        <div className="md:w-1/2 p-10 bg-gray-950 rounded-lg ml-30 text-white space-y-8">
+        <div className="w-full md:w-1/2 p-10 bg-gray-950 rounded-lg text-white space-y-8">
           <form
             onSubmit={handleSubmit}
             className="space-y-6 bg-gray-800 p-8 rounded-lg shadow-2xl border border-gray-700 hover:shadow-blue-500/50 transition duration-500 ease-in-out"

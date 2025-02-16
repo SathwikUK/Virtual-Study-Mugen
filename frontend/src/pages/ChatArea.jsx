@@ -7,7 +7,9 @@ import MessageList from "../components/MessageList";
 import { Search, Users, Phone, Video, X } from "lucide-react";
 import MessageInput from "../components/MessageInput";
 import MessageContext from "../components/MessageContext";
+import { FaArrowLeft } from "react-icons/fa";
 
+// Socket configuration
 const socket = io("http://localhost:5000", {
   reconnection: true,
   reconnectionDelay: 1000,
@@ -23,8 +25,9 @@ const ChatArea = ({
   userId,
   currentUser,
   onNewMessage = () => {},
-  showGroupDetails,    // Toggles the GroupDetailsPanel in StudentDashboard
-  onToggleDetails      // Toggles the GroupDetailsPanel in StudentDashboard
+  showGroupDetails, // Toggles the GroupDetailsPanel in StudentDashboard
+  onToggleDetails, // Toggles the GroupDetailsPanel in StudentDashboard
+  onBack, // New prop: called when the back arrow is clicked (for mobile)
 }) => {
   const [messages, setMessages] = useState([]);
   const [filteredMessages, setFilteredMessages] = useState([]);
@@ -38,7 +41,8 @@ const ChatArea = ({
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
-  const [showSearchBar, setShowSearchBar] = useState(false); // New state for toggling search
+  const [showSearchBar, setShowSearchBar] = useState(false);
+
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
@@ -171,7 +175,11 @@ const ChatArea = ({
     } else {
       const filtered = messages.filter((msg) => {
         const messageText = msg.message?.toLowerCase() || "";
-        const senderName = (msg.senderId.name || msg.senderName || "")?.toLowerCase();
+        const senderName = (
+          msg.senderId.name ||
+          msg.senderName ||
+          ""
+        )?.toLowerCase();
         const fileName = msg.fileData?.fileName?.toLowerCase() || "";
         const searchLower = searchQuery.toLowerCase();
         return (
@@ -309,6 +317,7 @@ const ChatArea = ({
     }
   };
 
+  // If no chat is selected, you might want to render a placeholder.
   if (!selectedChat) {
     return (
       <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-50 to-purple-50">
@@ -331,6 +340,10 @@ const ChatArea = ({
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              {/* Back arrow button for small devices */}
+              <button onClick={onBack} className="md:hidden text-white">
+                <FaArrowLeft size={20} />
+              </button>
               <div className="relative">
                 <img
                   src={selectedChat.image || "https://via.placeholder.com/150"}
@@ -346,7 +359,6 @@ const ChatArea = ({
               </div>
             </div>
             <div className="flex gap-4">
-              
               {/* Search toggle button */}
               <button
                 onClick={() => setShowSearchBar((prev) => !prev)}

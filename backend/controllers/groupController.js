@@ -1,9 +1,7 @@
 // controllers/groupController.js
 const Group = require('../models/groupModel');
 const mongoose = require('mongoose');
-
-const Message = require("../models/Message");    // Message model
-const User = require("../models/user");  
+const User = require('../models/user');
 
 // Retrieve groups with pagination and batched user lookups
 const getAllGroups = async (req, res) => {
@@ -147,65 +145,6 @@ const deleteGroup = async (req, res) => {
   }
 };
 
-const deleteGroupAndMessages = async (req, res) => {
-  const { id } = req.params; // Group ID
-  try {
-    // 1. Verify JWT token
-    const token = req.header("Authorization")?.replace("Bearer ", "");
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: No token provided",
-      });
-    }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Assuming your token contains the email, look up the user.
-    const currentUser = await User.findOne({ email: decoded.email });
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized: User not found",
-      });
-    }
-
-    // 2. Find the group by ID
-    const group = await Group.findById(id);
-    if (!group) {
-      return res.status(404).json({
-        success: false,
-        message: "Group not found",
-      });
-    }
-
-    // 3. Check if the current user is the creator of the group
-    if (group.createdBy.toString() !== currentUser._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "You do not have permission to delete this group",
-      });
-    }
-
-    // 4. Delete all messages associated with this group
-    await Message.deleteMany({ groupId: id });
-
-    // 5. Delete the group itself
-    await Group.findByIdAndDelete(id);
-
-    res.status(200).json({
-      success: true,
-      message: "Group and all associated messages deleted successfully",
-    });
-  } catch (error) {
-    console.error("Error deleting group:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error deleting group",
-      error: error.message,
-    });
-  }
-};
-
-
 const updateGroup = async (req, res) => {
   const { id } = req.params;
   const { name, description } = req.body;
@@ -227,9 +166,9 @@ const updateGroup = async (req, res) => {
   }
 };
 
+
 module.exports = {
   getAllGroups,
-  deleteGroup,
+  deleteGroup, // your old deleteGroup (if still needed) // new function
   updateGroup,
-  deleteGroupAndMessages,
 };

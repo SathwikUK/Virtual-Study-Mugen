@@ -52,6 +52,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/groups", groupsRouter);
 
+
 // API to send a message
 app.post("/api/messages", async (req, res) => {
   try {
