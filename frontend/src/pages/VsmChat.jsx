@@ -17,7 +17,7 @@ import { useToast } from "../hooks/use-toast";
 import katex from "katex";
 import openAiGif from "../assets/hina.gif";
 
-const socket = io("https://virtual-study-mugen.vercel.app", {
+const socket = io("http://virtual-study-mugen.vercel.app", {
   transports: ["websocket"],
   upgrade: false,
 });
