@@ -1,35 +1,49 @@
 // server.js
 const express = require("express");
 const http = require("http");
-const socketIo = require("socket.io");
+const { Server } = require("socket.io");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const multer = require("multer");
+const axios = require("axios");
 
+// Import routes
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const groupsRouter = require("./routes/groups");
-const messagesRoutes = require("./routes/messagesRoutes"); // New messages routes
-
-const axios = require("axios");
+const messagesRoutes = require("./routes/messagesRoutes");
 
 dotenv.config();
+
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: { origin: "*" },
+
+// Configure Socket.io to accept any origin
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Accept requests from any origin
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
   maxHttpBufferSize: 1e8,
   pingTimeout: 60000,
 });
 
+// Access API keys from .env
 const COHERE_API_KEY = process.env.COHERE_API_KEY;
 
-// Attach io to the app so it can be accessed in controllers
+// Attach io to the app for use in controllers if needed
 app.set("io", io);
 
-// Middleware
-app.use(cors());
+// Middleware to allow requests from any origin
+app.use(
+  cors({
+    origin: "*", // Allow all origins
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
@@ -38,7 +52,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: {
-    fileSize: 50 * 1024 * 1024,
+    fileSize: 50 * 1024 * 1024, // 50MB limit
   },
 });
 
@@ -56,26 +70,24 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/groups", groupsRouter);
-app.use("/api/messages", messagesRoutes); // Use messages routes
+app.use("/api/messages", messagesRoutes);
 
 // Example route
 app.get("/", (req, res) => {
-  return res.send("Hello world!");
+  res.send("Hello world!");
 });
 
-// API to upload a file
+// API endpoint to upload a file
 app.post("/api/upload", upload.single("file"), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
-
     const fileData = {
       data: req.file.buffer.toString("base64"),
       contentType: req.file.mimetype,
       fileName: req.file.originalname,
     };
-
     res.json({ fileData });
   } catch (error) {
     console.error("Error uploading file:", error);
@@ -122,7 +134,6 @@ io.on("connection", (socket) => {
           },
         }
       );
-
       socket.emit("generateResponse", response.data);
     } catch (error) {
       console.error("Generation error:", error);
@@ -139,10 +150,10 @@ io.on("connection", (socket) => {
       });
       await newMessage.save();
 
-      // Broadcast to all users in the group
+      // Broadcast to all users in the group except sender
       socket.to(message.groupId).emit("newMessage", newMessage);
 
-      // Get group members and emit unreadMessage event to all except sender
+      // Emit newMessage event to group members individually (except sender)
       const Group = require("./models/groupModel");
       const group = await Group.findById(message.groupId);
       if (group) {
@@ -168,7 +179,6 @@ io.on("connection", (socket) => {
         },
         { $addToSet: { readBy: userId } }
       );
-
       io.emit("messagesMarkedAsRead", { groupId, userId });
     } catch (error) {
       console.error("Error marking messages as read:", error);
@@ -183,7 +193,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// API to get unread counts per group for a user is now handled by messagesRoutes
-
-const PORT = process.env.PORT || 5000;
+// Listen on port 5173 or environment variable PORT
+const PORT = process.env.PORT || 5173;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

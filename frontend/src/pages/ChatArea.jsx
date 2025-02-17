@@ -9,7 +9,7 @@ import MessageInput from "../components/MessageInput";
 import MessageContext from "../components/MessageContext";
 import { FaArrowLeft } from "react-icons/fa";
 
-const socket = io("http://localhost:5000", {
+const socket = io("http://virtual-study-mugen.vercel.app/", {
   reconnection: true,
   reconnectionDelay: 1000,
   reconnectionDelayMax: 5000,
