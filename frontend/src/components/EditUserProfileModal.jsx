@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { X, Loader2 } from "lucide-react"; // Loader2 for spinning effect
+import axios from "../api/axios";
 
 const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
   const [username, setUsername] = useState(selectedItem?.name || "");
@@ -21,15 +22,15 @@ const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
       formData.append("email", updatedProfile.email);
       if (file) formData.append("image", file);
 
-      const response = await fetch(
-        `http://localhost:5000/api/admin/users/${updatedProfile.email}`,
+      const response = await axios.put(
+        `/admin/users/${updatedProfile.email}`,
+        formData,
         {
-          method: "PUT",
-          body: formData,
+          headers: { "Content-Type": "multipart/form-data" },
         }
       );
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error("Error updating profile");
       }
 
@@ -86,9 +87,7 @@ const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-lg flex items-center justify-center z-50 p-4">
       {/* Modal Container */}
-      <div className="relative bg-gray-900 text-white p-8 rounded-xl w-full max-w-lg 
-        border border-gray-700 shadow-2xl">
-        
+      <div className="relative bg-gray-900 text-white p-8 rounded-xl w-full max-w-lg border border-gray-700 shadow-2xl">
         {/* Close Button */}
         <button 
           onClick={onClose}
@@ -97,8 +96,7 @@ const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
         </button>
 
         {/* Title */}
-        <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-cyan-400 to-blue-400 
-          bg-clip-text text-transparent mb-6">
+        <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-6">
           Edit Profile
         </h2>
 
@@ -111,8 +109,7 @@ const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
               className="w-32 h-32 rounded-full border-4 border-cyan-400 object-cover"
             />
           ) : (
-            <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center 
-              justify-center border-4 border-cyan-400">
+            <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center border-4 border-cyan-400">
               <span className="text-4xl text-white font-bold">
                 {selectedItem.name?.charAt(0)}
               </span>
@@ -124,9 +121,7 @@ const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
             type="file"
             accept="image/*"
             onChange={handlePhotoChange}
-            className="mt-4 w-full text-sm text-gray-300 cursor-pointer 
-              border border-gray-600 px-4 py-2 rounded-lg bg-gray-800 
-              hover:border-blue-400 transition"
+            className="mt-4 w-full text-sm text-gray-300 cursor-pointer border border-gray-600 px-4 py-2 rounded-lg bg-gray-800 hover:border-blue-400 transition"
           />
         </div>
 
@@ -138,8 +133,7 @@ const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
               type="email"
               value={email}
               readOnly
-              className="w-full bg-gray-800 border border-gray-600 px-4 py-2 
-                rounded-lg text-gray-300 cursor-not-allowed"
+              className="w-full bg-gray-800 border border-gray-600 px-4 py-2 rounded-lg text-gray-300 cursor-not-allowed"
             />
           </div>
 
@@ -149,8 +143,7 @@ const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-600 px-4 py-2 
-                rounded-lg text-white focus:border-blue-400 outline-none transition"
+              className="w-full bg-gray-800 border border-gray-600 px-4 py-2 rounded-lg text-white focus:border-blue-400 outline-none transition"
             />
           </div>
         </div>
@@ -159,18 +152,16 @@ const EditUserProfileModal = ({ selectedItem, onClose, fetchUsers }) => {
         <div className="flex justify-end space-x-4 mt-6">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-700 text-white rounded-lg transition
-              hover:bg-gray-600"
-            >
+            className="px-6 py-2 bg-gray-700 text-white rounded-lg transition hover:bg-gray-600"
+          >
             Cancel
           </button>
           <button
             onClick={handleUpdate}
-            className="px-6 py-2 bg-cyan-500 text-white rounded-lg transition
-              hover:bg-cyan-600 flex items-center justify-center"
-            >
-              {loading ? <Loader2 className="animate-spin mr-2" size={20} /> : null}
-              {loading ? "Updating..." : "Update"}
+            className="px-6 py-2 bg-cyan-500 text-white rounded-lg transition hover:bg-cyan-600 flex items-center justify-center"
+          >
+            {loading ? <Loader2 className="animate-spin mr-2" size={20} /> : null}
+            {loading ? "Updating..." : "Update"}
           </button>
         </div>
       </div>

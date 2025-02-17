@@ -11,6 +11,7 @@ import Sidebar from "../components/Sidebar";
 import GroupProfileModal from "../components/GroupProfileModal";
 import EditGroupModal from "../components/EditGroupModal";
 import DeleteGroupModal from "../components/DeleteGroupModal";
+import axios from "../api/axios";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -27,32 +28,26 @@ const AdminDashboard = () => {
   const [groups, setGroups] = useState([]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
+    localStorage.removeItem("token");
+    navigate("/");
   };
 
-  // Fetch users from API
+  // Fetch users from API using axios
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/admin/users");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      const data = await response.json();
-      setUsers(data);
+      const response = await axios.get("/admin/users");
+      setUsers(response.data);
     } catch (error) {
       console.error(error);
       toast.error("Error fetching users from the database.");
     }
   };
 
-  // Fetch groups from API
+  // Fetch groups from API using axios
   const fetchGroups = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/admin/groups");
-      if (!response.ok) throw new Error("Failed to fetch groups");
-      const data = await response.json();
-      setGroups(data.data);
+      const response = await axios.get("/admin/groups");
+      setGroups(response.data.data);
     } catch (error) {
       console.error(error);
       toast.error("Error fetching groups from the database.");
@@ -90,16 +85,14 @@ const AdminDashboard = () => {
   const renderUsers = () => {
     if (!Array.isArray(users) || users.length === 0) {
       return (
-        <div className="text-white text-center p-8 bg-gray-900/50 rounded-xl backdrop-blur-lg 
-          border border-gray-800/50 shadow-neon">
+        <div className="text-white text-center p-8 bg-gray-900/50 rounded-xl backdrop-blur-lg border border-gray-800/50 shadow-neon">
           No users found.
         </div>
       );
     }
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto 
-        custom-scrollbar max-h-[calc(100vh-7rem)]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto custom-scrollbar max-h-[calc(100vh-7rem)]">
         {users
           .filter(
             (user) =>
@@ -129,16 +122,14 @@ const AdminDashboard = () => {
   const renderGroups = () => {
     if (!Array.isArray(groups) || groups.length === 0) {
       return (
-        <div className="text-white text-center p-8 bg-gray-900/50 rounded-xl backdrop-blur-lg 
-          border border-gray-800/50 shadow-neon">
+        <div className="text-white text-center p-8 bg-gray-900/50 rounded-xl backdrop-blur-lg border border-gray-800/50 shadow-neon">
           No groups found.
         </div>
       );
     }
-  
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto 
-        custom-scrollbar max-h-[calc(100vh-7rem)]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-y-auto custom-scrollbar max-h-[calc(100vh-7rem)]">
         {groups
           .filter(
             (group) =>
@@ -152,13 +143,13 @@ const AdminDashboard = () => {
             const imageSrc = group.image?.startsWith("data:image")
               ? group.image
               : `data:image/jpeg;base64,${group.image}`;
-  
+
             return (
               <Card
                 key={group._id}
                 title={group.name}
                 subtitle={group.description || "No description available"}
-                image={imageSrc || "https://via.placeholder.com/150"} // Fallback image
+                image={imageSrc || "https://via.placeholder.com/150"}
                 onView={() => handleGroupView(group)}
                 onEdit={() => handleGroupEdit(group)}
                 onDelete={() => {
@@ -171,8 +162,6 @@ const AdminDashboard = () => {
       </div>
     );
   };
-  
-  
 
   return (
     <div className="flex min-h-screen bg-black">
@@ -181,11 +170,9 @@ const AdminDashboard = () => {
       <div className="flex-1 p-6">
         <div className="flex justify-between items-center mb-6">
           <SearchBar setSearchQuery={setSearchQuery} />
-          
         </div>
 
-        <div className="bg-gray-900/50 rounded-xl backdrop-blur-lg shadow-2xl 
-          border border-gray-800/50 hover:border-pink-500/30 transition-all duration-300">
+        <div className="bg-gray-900/50 rounded-xl backdrop-blur-lg shadow-2xl border border-gray-800/50 hover:border-pink-500/30 transition-all duration-300">
           {activeTab === "users" ? renderUsers() : renderGroups()}
         </div>
       </div>

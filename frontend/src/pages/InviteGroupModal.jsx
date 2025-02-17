@@ -1,6 +1,6 @@
 // InviteGroupModal.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../api/axios';
 import { toast } from 'react-toastify';
 import { Search } from 'lucide-react';
 
@@ -22,7 +22,7 @@ const InviteGroupModal = ({ groupId, onClose }) => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `http://localhost:5000/api/auth/search-users?query=${searchQuery}`,
+          `/auth/search-users?query=${searchQuery}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setUsers(response.data.users);
@@ -44,7 +44,7 @@ const InviteGroupModal = ({ groupId, onClose }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:5000/api/auth/send-group-invite',
+        '/auth/send-group-invite',
         { groupId, userId: selectedUser._id },
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import axios from "axios";
+import axios from "../api/axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Sidebar from "./Sidebar";
@@ -58,7 +58,7 @@ const StudentDashboard = () => {
         return;
       }
       const response = await axios.get(
-        "http://localhost:5000/api/auth/profile",
+        "/auth/profile",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUserName(response.data.name || "User");
@@ -75,7 +75,7 @@ const StudentDashboard = () => {
       if (!userId) return;
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "http://localhost:5000/api/auth/notifications",
+        "/auth/notifications",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -98,7 +98,7 @@ const StudentDashboard = () => {
       const token = localStorage.getItem("token");
       if (!token || !userId) return;
       const response = await axios.get(
-        "http://localhost:5000/api/auth/groups",
+        "/auth/groups",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.groups) {
@@ -116,7 +116,7 @@ const StudentDashboard = () => {
       const token = localStorage.getItem("token");
       if (!token || !userId) return;
       const response = await axios.get(
-        "http://localhost:5000/api/auth/groups",
+        "/auth/groups",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.groups) {
@@ -133,7 +133,7 @@ const StudentDashboard = () => {
       if (!userId) return;
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        "http://localhost:5000/api/auth/notifications",
+        "/auth/notifications",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.notifications) {
@@ -155,12 +155,12 @@ const StudentDashboard = () => {
         if (cachedMember) {
           return JSON.parse(cachedMember);
         }
-        const response = await fetch(
-          `http://localhost:5000/api/auth/user/${memberId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (response.ok) {
-          const userData = await response.json();
+        try {
+          const response = await axios.get(
+            `/auth/user/${memberId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const userData = response.data;
           const memberData = {
             id: memberId,
             name: userData.name,
@@ -173,8 +173,10 @@ const StudentDashboard = () => {
             JSON.stringify(memberData)
           );
           return memberData;
+        } catch (error) {
+          console.error(`Error fetching details for member ${memberId}:`, error);
+          return null;
         }
-        return null;
       });
       const memberDetails = await Promise.all(memberPromises);
       setGroupMembers(memberDetails.filter((member) => member !== null));
@@ -183,25 +185,24 @@ const StudentDashboard = () => {
     }
   }, [selectedChat]);
 
+  // ---------------- FETCH CREATOR DETAILS ----------------
   useEffect(() => {
     const fetchCreatorDetails = async () => {
       if (selectedChat?.createdBy) {
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(
-            `http://localhost:5000/api/auth/user/${selectedChat.createdBy}`,
+          const response = await axios.get(
+            `/auth/user/${selectedChat.createdBy}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          if (response.ok) {
-            const userData = await response.json();
-            setCreatorDetails({
-              _id: selectedChat.createdBy,
-              name: userData.name,
-              image: userData.image,
-              status: "online",
-              role: "Creator",
-            });
-          }
+          const userData = response.data;
+          setCreatorDetails({
+            _id: selectedChat.createdBy,
+            name: userData.name,
+            image: userData.image,
+            status: "online",
+            role: "Creator",
+          });
         } catch (error) {
           console.error("Error fetching creator details:", error);
         }
@@ -275,29 +276,29 @@ const StudentDashboard = () => {
       members: [userId],
     };
     try {
-      const response = await fetch("http://localhost:5000/api/auth/groups", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newGroupData),
-      });
-      if (response.ok) {
-        const result = await response.json();
-        setChats([...chats, result.group]);
-        setModalOpen(false);
-        setNewGroupName("");
-        setNewGroupDetails("");
-        setNewGroupImage(null);
-        toast.success(result.message);
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || "Failed to create group");
-      }
+      const response = await axios.post(
+        "/auth/groups",
+        newGroupData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setChats([...chats, response.data.group]);
+      setModalOpen(false);
+      setNewGroupName("");
+      setNewGroupDetails("");
+      setNewGroupImage(null);
+      toast.success(response.data.message);
     } catch (error) {
-      toast.error("Something went wrong. Please try again.");
       console.error(error);
+      if (error.response && error.response.data) {
+        toast.error(error.response.data.message || "Failed to create group");
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     }
   };
 
@@ -317,7 +318,7 @@ const StudentDashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        "http://localhost:5000/api/messages",
+        "/messages",
         {
           chatId: selectedChat._id,
           content: currentMessage,

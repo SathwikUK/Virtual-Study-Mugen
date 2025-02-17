@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
-import axios from "axios";
+import axios from "../api/axios";
 import { useContextMenu } from "react-contexify";
 import "react-contexify/dist/ReactContexify.css";
 import MessageList from "../components/MessageList";
@@ -9,7 +9,6 @@ import MessageInput from "../components/MessageInput";
 import MessageContext from "../components/MessageContext";
 import { FaArrowLeft } from "react-icons/fa";
 
-// Socket configuration
 const socket = io("http://localhost:5000", {
   reconnection: true,
   reconnectionDelay: 1000,
@@ -25,9 +24,9 @@ const ChatArea = ({
   userId,
   currentUser,
   onNewMessage = () => {},
-  showGroupDetails, // Toggles the GroupDetailsPanel in StudentDashboard
-  onToggleDetails, // Toggles the GroupDetailsPanel in StudentDashboard
-  onBack, // New prop: called when the back arrow is clicked (for mobile)
+  showGroupDetails,
+  onToggleDetails,
+  onBack,
 }) => {
   const [messages, setMessages] = useState([]);
   const [filteredMessages, setFilteredMessages] = useState([]);
@@ -52,12 +51,13 @@ const ChatArea = ({
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
+  // Fetch messages using axios
   const fetchMessages = async (pageNum = 1, scrollToEnd = true) => {
     if (!selectedChat?._id || loading) return;
     try {
       setLoading(true);
       const response = await axios.get(
-        `http://localhost:5000/api/messages/${selectedChat._id}?page=${pageNum}&limit=${MESSAGES_PER_PAGE}`
+        `/messages/${selectedChat._id}?page=${pageNum}&limit=${MESSAGES_PER_PAGE}`
       );
       const newMessages = response.data;
       if (pageNum === 1) {
@@ -175,11 +175,7 @@ const ChatArea = ({
     } else {
       const filtered = messages.filter((msg) => {
         const messageText = msg.message?.toLowerCase() || "";
-        const senderName = (
-          msg.senderId.name ||
-          msg.senderName ||
-          ""
-        )?.toLowerCase();
+        const senderName = (msg.senderId.name || msg.senderName || "").toLowerCase();
         const fileName = msg.fileData?.fileName?.toLowerCase() || "";
         const searchLower = searchQuery.toLowerCase();
         return (
@@ -199,10 +195,7 @@ const ChatArea = ({
     formData.append("file", file);
     try {
       setUploading(true);
-      const response = await axios.post(
-        "http://localhost:5000/api/upload",
-        formData
-      );
+      const response = await axios.post("/upload", formData);
       await handleSendMessage(null, response.data.fileData);
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -227,10 +220,7 @@ const ChatArea = ({
       senderName: currentUser?.name,
     };
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/messages",
-        newMessage
-      );
+      const response = await axios.post("/messages", newMessage);
       socket.emit("sendMessage", response.data);
       setMessage("");
       setShowEmojiPicker(false);
@@ -268,15 +258,9 @@ const ChatArea = ({
 
   const handleDeleteMessage = async (args) => {
     try {
-      await axios.delete(
-        `http://localhost:5000/api/messages/${args.props.messageId}`
-      );
-      setMessages((prev) =>
-        prev.filter((msg) => msg._id !== args.props.messageId)
-      );
-      setFilteredMessages((prev) =>
-        prev.filter((msg) => msg._id !== args.props.messageId)
-      );
+      await axios.delete(`/messages/${args.props.messageId}`);
+      setMessages((prev) => prev.filter((msg) => msg._id !== args.props.messageId));
+      setFilteredMessages((prev) => prev.filter((msg) => msg._id !== args.props.messageId));
       socket.emit("messageDeleted", args.props.messageId);
     } catch (error) {
       console.error("Error deleting message:", error);
@@ -299,10 +283,9 @@ const ChatArea = ({
   const handleEditMessage = async (messageId) => {
     if (!editMessage.trim()) return;
     try {
-      const response = await axios.put(
-        `http://localhost:5000/api/messages/${messageId}`,
-        { message: editMessage }
-      );
+      const response = await axios.put(`/messages/${messageId}`, {
+        message: editMessage,
+      });
       setMessages((prev) =>
         prev.map((msg) => (msg._id === messageId ? response.data : msg))
       );
@@ -317,17 +300,12 @@ const ChatArea = ({
     }
   };
 
-  // If no chat is selected, you might want to render a placeholder.
   if (!selectedChat) {
     return (
       <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-50 to-purple-50">
         <div className="text-center p-8 rounded-lg bg-white shadow-lg">
-          <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-            Welcome to Chat
-          </h3>
-          <p className="text-gray-600">
-            Select a conversation to start messaging
-          </p>
+          <h3 className="text-2xl font-semibold text-gray-800 mb-4">Welcome to Chat</h3>
+          <p className="text-gray-600">Select a conversation to start messaging</p>
         </div>
       </div>
     );
@@ -340,7 +318,6 @@ const ChatArea = ({
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {/* Back arrow button for small devices */}
               <button onClick={onBack} className="md:hidden text-white">
                 <FaArrowLeft size={20} />
               </button>
@@ -359,14 +336,12 @@ const ChatArea = ({
               </div>
             </div>
             <div className="flex gap-4">
-              {/* Search toggle button */}
               <button
                 onClick={() => setShowSearchBar((prev) => !prev)}
                 className="p-2 rounded-full bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-300 text-purple-400 hover:text-purple-300"
               >
                 {showSearchBar ? <X size={20} /> : <Search size={20} />}
               </button>
-              {/* Users icon to toggle GroupDetailsPanel */}
               <button
                 onClick={onToggleDetails}
                 className={`p-2 rounded-full transition-all duration-300 ${
@@ -379,7 +354,6 @@ const ChatArea = ({
               </button>
             </div>
           </div>
-          {/* Conditionally render search bar */}
           {showSearchBar && (
             <div className="relative transition-all duration-300">
               <input

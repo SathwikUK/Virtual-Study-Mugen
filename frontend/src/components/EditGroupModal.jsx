@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { X, Loader2 } from "lucide-react";
-import axios from "axios";
+import axios from "../api/axios";
 
 const EditGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
   const [groupData, setGroupData] = useState({
@@ -22,7 +22,10 @@ const EditGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
     });
 
     if (selectedGroup?.image) {
-      if (selectedGroup.image.startsWith("http") || selectedGroup.image.startsWith("data")) {
+      if (
+        selectedGroup.image.startsWith("http") ||
+        selectedGroup.image.startsWith("data")
+      ) {
         setPhotoPreview(selectedGroup.image); // If it's a direct URL or already in Base64 format
       } else {
         setPhotoPreview(`data:image/jpeg;base64,${selectedGroup.image}`); // Assume it's Base64
@@ -57,7 +60,10 @@ const EditGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
   // Handle form submission
   const handleSave = async () => {
     if (!groupData.name) {
-      toast.error("Group name is required!", { position: "top-right", autoClose: 3000 });
+      toast.error("Group name is required!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
       return;
     }
 
@@ -69,7 +75,7 @@ const EditGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
       if (groupPhoto) formData.append("image", groupPhoto);
 
       const response = await axios.put(
-        `http://localhost:5000/api/admin/groups/${selectedGroup._id}`,
+        `/admin/groups/${selectedGroup._id}`,
         formData
       );
 
@@ -101,7 +107,10 @@ const EditGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
     <div className="fixed inset-0 bg-black/70 backdrop-blur-lg flex items-center justify-center z-50 p-4">
       <div className="relative bg-gray-900 text-white p-8 rounded-xl w-full max-w-lg border border-gray-700 shadow-2xl">
         {/* Close Button */}
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition"
+        >
           <X size={24} />
         </button>
 
@@ -120,7 +129,9 @@ const EditGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
             />
           ) : (
             <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center border-4 border-cyan-400">
-              <span className="text-4xl text-white font-bold">{groupData.name.charAt(0)}</span>
+              <span className="text-4xl text-white font-bold">
+                {groupData.name.charAt(0)}
+              </span>
             </div>
           )}
           <input

@@ -1,4 +1,3 @@
-// NotificationsPanel.jsx
 import React, { useMemo } from "react";
 import { FaTimes } from "react-icons/fa";
 import NotificationItem from "../pages/NotificationItem";
@@ -46,7 +45,6 @@ const NotificationsPanel = ({
           right-4
           w-0
           h-0
-          
           border-l-8
           border-r-8
           border-transparent
@@ -75,7 +73,9 @@ const NotificationsPanel = ({
             />
           ))
         ) : (
-          <p className="text-gray-400 text-center mt-4">No notifications found</p>
+          <p className="text-gray-400 text-center mt-4">
+            No notifications found
+          </p>
         )}
       </div>
     </div>

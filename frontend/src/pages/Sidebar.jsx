@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   FaBars,
   FaPlus,
@@ -13,7 +19,7 @@ import {
   FaSave,
 } from "react-icons/fa";
 import io from "socket.io-client";
-import axios from "axios";
+import axios from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import NotificationsPanel from "../components/NotificationsPanel";
 import openAiGif from "../assets/hina.gif";
@@ -27,14 +33,11 @@ const socket = io("http://localhost:5000", {
   transports: ["websocket"],
 });
 
-// ----- AXIOS INSTANCE -----
-const api = axios.create({
-  baseURL: "http://localhost:5000",
-  headers: {
-    "Cache-Control": "no-cache",
-    Pragma: "no-cache",
-  },
-});
+// Helper function to ensure a Base64 string is formatted as a data URI
+const formatImageSrc = (image) => {
+  if (!image) return null;
+  return image.startsWith("data:") ? image : `data:image/png;base64,${image}`;
+};
 
 const Sidebar = ({
   isOpen,
@@ -48,6 +51,8 @@ const Sidebar = ({
   notifications,
   showNotifications,
   onToggleNotifications,
+  // onStatusUpdate & onGroupUpdate are passed from parent – they will update the notifications data,
+  // for example by marking a notification as read (without removing it)
   onStatusUpdate = () => {},
   onGroupUpdate = () => {},
   showOpenAI,
@@ -78,8 +83,12 @@ const Sidebar = ({
       const token = localStorage.getItem("token");
       if (!token || !userId) return;
 
-      const response = await api.get("/api/auth/groups", {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await axios.get("/auth/groups", {
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.data.groups) {
@@ -96,7 +105,12 @@ const Sidebar = ({
   const fetchUnreadCounts = useCallback(async () => {
     if (!userId) return;
     try {
-      const response = await api.get(`/api/messages/unread/${userId}`);
+      const response = await axios.get(`/messages/unread/${userId}`, {
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
       const counts = response.data.reduce((acc, { groupId, count }) => {
         acc[groupId] = count;
         return acc;
@@ -113,8 +127,12 @@ const Sidebar = ({
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No token found");
 
-      const response = await api.get("/api/auth/profile", {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await axios.get("/auth/profile", {
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const userData = response.data;
@@ -127,7 +145,10 @@ const Sidebar = ({
         const chunkSize = 0x8000; // 32768 bytes
         let binary = "";
         for (let i = 0; i < bytes.length; i += chunkSize) {
-          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+          binary += String.fromCharCode.apply(
+            null,
+            bytes.subarray(i, i + chunkSize)
+          );
         }
         const base64String = window.btoa(binary);
         setUserProfileImage(`data:image/png;base64,${base64String}`);
@@ -228,6 +249,12 @@ const Sidebar = ({
   const showSpinnerForChats =
     isLoading || (localChats.length === 0 && timeSinceMount < 3000);
 
+  // -------------------- COMPUTE UNREAD NOTIFICATIONS COUNT --------------------
+  // Instead of showing notifications.length, we calculate how many notifications are still "unread"
+  const unreadCount = notifications.filter(
+    (n) => !n.read && (!n.status || n.status === "pending")
+  ).length;
+
   // -------------------- RENDER --------------------
   return (
     <div className="relative p-4 h-full flex flex-col bg-black text-white shadow-md rounded-lg overflow-visible z-10">
@@ -275,6 +302,12 @@ const Sidebar = ({
           >
             <FaBell className="text-xl" />
           </button>
+          {/* Show unread count (if any) */}
+          {unreadCount > 0 && (
+            <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+              {unreadCount}
+            </span>
+          )}
           {showNotifications && (
             <div className="absolute top-full right-[-40px] mt-2 z-50">
               <NotificationsPanel
@@ -293,7 +326,11 @@ const Sidebar = ({
           className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-80 transition duration-200"
           onClick={onToggle}
         >
-          {isOpen ? <FaArrowLeft className="text-xl" /> : <FaBars className="text-xl" />}
+          {isOpen ? (
+            <FaArrowLeft className="text-xl" />
+          ) : (
+            <FaBars className="text-xl" />
+          )}
         </button>
 
         {/* GIF Button */}
@@ -302,7 +339,11 @@ const Sidebar = ({
             className="w-20 h-20 ml-[-10px] flex items-center justify-center overflow-hidden rounded-full bg-transparent"
             onClick={onToggleOpenAI}
           >
-            <img src={openAiGif} alt="GIF" className="w-full h-full object-cover" />
+            <img
+              src={openAiGif}
+              alt="GIF"
+              className="w-full h-full object-cover"
+            />
           </button>
         </div>
       </div>
@@ -334,7 +375,7 @@ const Sidebar = ({
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-600">
                       {chat.image ? (
                         <img
-                          src={chat.image}
+                          src={formatImageSrc(chat.image)}
                           alt={chat.name}
                           className="object-cover w-full h-full"
                           loading="lazy"
@@ -348,11 +389,12 @@ const Sidebar = ({
                         <p className="font-medium text-gray-100 truncate">
                           {chat.name}
                         </p>
-                        {unreadCounts[chat._id] > 0 && chat._id !== activeChat && (
-                          <span className="bg-red-600 text-white rounded-full px-2 py-0.5 text-xs">
-                            {unreadCounts[chat._id]}
-                          </span>
-                        )}
+                        {unreadCounts[chat._id] > 0 &&
+                          chat._id !== activeChat && (
+                            <span className="bg-red-600 text-white rounded-full px-2 py-0.5 text-xs">
+                              {unreadCounts[chat._id]}
+                            </span>
+                          )}
                       </div>
                       <p className="text-sm text-gray-300 truncate">
                         {chat.lastMessage}
@@ -459,7 +501,6 @@ export default Sidebar;
 const UserProfileModal = ({ user, onClose, onProfileUpdated }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [updatedName, setUpdatedName] = useState(user.name || "");
-  const [updatedRole, setUpdatedRole] = useState("student"); // default or from user if available
   const [updatedImage, setUpdatedImage] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -471,7 +512,7 @@ const UserProfileModal = ({ user, onClose, onProfileUpdated }) => {
     }
   };
 
-  // Save changes: call the update endpoint with a simulated 1s delay
+  // Save changes: update only name and image
   const handleSave = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -479,22 +520,23 @@ const UserProfileModal = ({ user, onClose, onProfileUpdated }) => {
         setErrorMsg("No authorization token found.");
         return;
       }
-      // Use FormData for image upload
       const formData = new FormData();
       formData.append("name", updatedName);
-      formData.append("role", updatedRole);
       if (updatedImage) {
         formData.append("image", updatedImage);
       }
 
       setIsUpdating(true);
-      await axios.put(`http://localhost:5000/api/auth/users/${user.email}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      // Simulate a 1-second loading period
+      await axios.put(
+        `http://localhost:5000/api/auth/users/${user.email}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setTimeout(() => {
         toast.success("Profile updated successfully!");
         onProfileUpdated && onProfileUpdated();
@@ -512,23 +554,18 @@ const UserProfileModal = ({ user, onClose, onProfileUpdated }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
       <div className="bg-gray-800 p-6 rounded-lg w-80 relative shadow-xl">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-300 hover:text-white"
         >
           <FaTimes />
         </button>
-
         <h2 className="text-2xl font-bold mb-4 text-center text-purple-300">
           User Profile
         </h2>
-
         {errorMsg && (
           <p className="text-red-400 text-sm mb-2 text-center">{errorMsg}</p>
         )}
-
-        {/* Display or edit image */}
         <div className="flex justify-center mb-4">
           {user.image && !updatedImage ? (
             <img
@@ -546,8 +583,6 @@ const UserProfileModal = ({ user, onClose, onProfileUpdated }) => {
             <FaUserCircle className="text-6xl text-gray-400" />
           )}
         </div>
-
-        {/* If editing, show file input */}
         {isEditing && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -561,8 +596,6 @@ const UserProfileModal = ({ user, onClose, onProfileUpdated }) => {
             />
           </div>
         )}
-
-        {/* Name */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Name
@@ -578,33 +611,13 @@ const UserProfileModal = ({ user, onClose, onProfileUpdated }) => {
             <p className="text-gray-200">{user.name}</p>
           )}
         </div>
-
-        {/* Email (read-only) */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Email
           </label>
           <p className="text-gray-200">{user.email}</p>
         </div>
-
-        {/* Role (optional) */}
-        {isEditing ? (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Role
-            </label>
-            <select
-              value={updatedRole}
-              onChange={(e) => setUpdatedRole(e.target.value)}
-              className="w-full p-2 rounded bg-gray-700 text-white focus:outline-none"
-            >
-              <option value="student">Student</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-        ) : null}
-
-        {/* Bottom buttons */}
+        {/* Role update has been removed */}
         <div className="flex justify-end gap-4 mt-6">
           {isEditing ? (
             <>

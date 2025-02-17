@@ -1,15 +1,14 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
+import axios from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import signupImage from "../assets/vsmsig.png";
-import { useDropzone } from "react-dropzone";  // Import React Dropzone
+import { useDropzone } from "react-dropzone";
 
 const Signup = () => {
   const navigate = useNavigate();
-
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -17,31 +16,39 @@ const Signup = () => {
     confirmPassword: "",
     otp: "",
     role: "student",
-    image: null,  // New state for the image
+    image: null,
   });
-
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
 
   const { getRootProps, getInputProps } = useDropzone({
-    accept: "image/*", // Restrict to image files only
+    accept: "image/*",
     onDrop: (acceptedFiles) => {
       setForm({ ...form, image: acceptedFiles[0] });
     },
   });
 
+  useEffect(() => {
+    let interval;
+    if (step === 2) {
+      setTimeLeft(300);
+      interval = setInterval(() => {
+        setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [step]);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-
     if (e.target.name === "confirmPassword") {
-      if (form.password !== e.target.value) {
-        setPasswordError("Passwords do not match.");
-      } else {
-        setPasswordError("");
-      }
+      setPasswordError(
+        form.password !== e.target.value ? "Passwords do not match." : ""
+      );
     }
   };
 
@@ -49,7 +56,6 @@ const Signup = () => {
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateEmail(form.email)) {
       setMessage("Please enter a valid email.");
       return;
@@ -64,14 +70,15 @@ const Signup = () => {
     formData.append("email", form.email);
     formData.append("password", form.password);
     formData.append("role", form.role);
-    formData.append("image", form.image);  // Append the image file
+    formData.append("image", form.image);
 
     setLoading(true);
     setMessage("");
 
     try {
-      await axios.post("http://localhost:5000/api/auth/register", formData, {
-        headers: { "Content-Type": "multipart/form-data" },  // Set header for form data
+      // Endpoint: http://localhost:5000/api/auth/register
+      await axios.post("/auth/register", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("OTP sent to your email.", { position: "bottom-right" });
       setStep(2);
@@ -90,8 +97,32 @@ const Signup = () => {
     navigate("/login");
   };
 
+  const handleResendOTP = async () => {
+    setLoading(true);
+    try {
+      // Endpoint: http://localhost:5000/api/auth/resendOTP
+      const response = await axios.post("/auth/resendOTP", {
+        email: form.email,
+      });
+      toast.success(response.data.message, { position: "bottom-right" });
+      setTimeLeft(300);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error resending OTP", {
+        position: "bottom-right",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-6 relative">
+    <div className="min-h-screen flex items-center justify-center bg-black p-6 relative">
       <button
         onClick={() => navigate("/")}
         type="button"
@@ -101,17 +132,21 @@ const Signup = () => {
         Back to Home
       </button>
 
-      <div className="flex flex-col md:flex-row items-center w-full max-w-5xl bg-gray-1000 rounded-xl overflow-hidden gap-8">
-        <div className="md:w-1/2 p-8 bg-gray-950 rounded-lg text-white space-y-6">
+      <div className="flex flex-col md:flex-row items-center w-full max-w-5xl bg-gray-900 rounded-xl overflow-hidden gap-8">
+        <div className="md:w-1/2 p-8">
           <form
             onSubmit={step === 1 ? handleSignupSubmit : handleOtpSubmit}
-            className="space-y-4 bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700 hover:shadow-blue-500/50 transition duration-500 ease-in-out"
+            className="space-y-4 bg-gray-800 p-6 rounded-lg border border-purple-700 shadow-[0_0_20px_rgba(128,0,128,0.7)] hover:shadow-[0_0_25px_rgba(128,0,128,0.9)] transition duration-500 ease-in-out"
           >
             <h2 className="text-3xl font-extrabold text-center bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
               Signup
             </h2>
 
-            {message && <div className="text-center text-red-400 font-medium">{message}</div>}
+            {message && (
+              <div className="text-center text-red-500 font-medium">
+                {message}
+              </div>
+            )}
 
             {step === 1 ? (
               <>
@@ -159,10 +194,14 @@ const Signup = () => {
                   />
                 </div>
 
-                {passwordError && <p className="text-red-400 text-sm">{passwordError}</p>}
+                {passwordError && (
+                  <p className="text-red-500 text-sm">{passwordError}</p>
+                )}
 
                 <div>
-                  <label className="block text-gray-400 font-medium mb-2">Role</label>
+                  <label className="block text-gray-400 font-medium mb-2">
+                    Role
+                  </label>
                   <div className="flex space-x-4">
                     <label className="inline-flex items-center">
                       <input
@@ -190,7 +229,10 @@ const Signup = () => {
                 </div>
 
                 {/* Dropzone for image upload */}
-                <div {...getRootProps()} className="border-2 border-dashed p-6 text-center">
+                <div
+                  {...getRootProps()}
+                  className="border-2 border-dashed border-purple-700 p-6 text-center text-gray-300"
+                >
                   <input {...getInputProps()} />
                   {form.image ? (
                     <p>{form.image.name}</p>
@@ -217,7 +259,8 @@ const Signup = () => {
             ) : (
               <>
                 <p className="text-gray-400 text-center mb-2">
-                  An OTP has been sent to your email. Enter it to complete registration.
+                  An OTP has been sent to your email. Enter it to complete
+                  registration.
                 </p>
 
                 <input
@@ -230,13 +273,33 @@ const Signup = () => {
                   className="w-full p-2 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-gray-400"
                 />
 
+                <div className="text-center text-gray-400 mt-2">
+                  {timeLeft > 0 ? (
+                    <p>OTP expires in {formatTime(timeLeft)}</p>
+                  ) : (
+                    <p>OTP expired. Please resend OTP.</p>
+                  )}
+                </div>
+
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all"
-                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all mt-2"
+                  disabled={loading || timeLeft === 0}
                 >
                   {loading ? "Verifying OTP..." : "Verify OTP"}
                 </button>
+
+                <div className="text-center mt-4">
+                  <p className="text-gray-400 mb-2">Didn't receive the OTP?</p>
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    className="text-blue-500 hover:underline focus:outline-none"
+                    disabled={loading}
+                  >
+                    Resend OTP
+                  </button>
+                </div>
               </>
             )}
           </form>

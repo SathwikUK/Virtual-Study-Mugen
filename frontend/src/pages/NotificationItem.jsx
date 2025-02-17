@@ -1,6 +1,5 @@
-// NotificationItem.jsx
 import React from "react";
-import axios from "axios";
+import axios from "../api/axios";
 import { toast } from "react-toastify";
 
 const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
@@ -13,8 +12,10 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
 
     if (diffInSeconds < 60) return "just now";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800)
+      return `${Math.floor(diffInSeconds / 86400)}d ago`;
     return `${Math.floor(diffInSeconds / 604800)}w ago`;
   };
 
@@ -39,7 +40,7 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
       }
 
       const response = await axios.post(
-        "http://localhost:5000/api/auth/respond-group-invite",
+        "/auth/respond-group-invite",
         {
           notificationId: notification._id,
           groupId: notification.groupId,
@@ -59,18 +60,17 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
           : `Declined invitation to ${notification.groupName}`;
         toast.success(message);
 
+        // Call onStatusUpdate with this notification's ID.
+        // The parent can then mark this notification as read (or update its status)
         if (onStatusUpdate) {
-          onStatusUpdate();
+          onStatusUpdate(notification._id);
         }
 
         if (accept && onGroupUpdate) {
           try {
-            const groupsResponse = await axios.get(
-              "http://localhost:5000/api/auth/groups",
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
+            const groupsResponse = await axios.get("/auth/groups", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
             onGroupUpdate(groupsResponse.data.groups);
           } catch (error) {
             console.error("Error fetching updated groups:", error);
@@ -112,7 +112,9 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
           {notification.createdAt && (
             <div className="text-xs text-gray-400 flex gap-2">
               <span>{getTimeAgo(notification.createdAt)}</span>
-              <span className="opacity-70">{formatTimestamp(notification.createdAt)}</span>
+              <span className="opacity-70">
+                {formatTimestamp(notification.createdAt)}
+              </span>
             </div>
           )}
         </div>
@@ -178,9 +180,7 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
             </span>
           )}
           {notification.status === "rejected" && (
-            <span className="text-sm text-red-400 font-semibold">
-              Rejected
-            </span>
+            <span className="text-sm text-red-400 font-semibold">Rejected</span>
           )}
         </div>
       </div>

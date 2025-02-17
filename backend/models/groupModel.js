@@ -10,6 +10,6 @@ const groupSchema = new mongoose.Schema({
   isLive: { type: Boolean, default: false },
 });
 
-const Group = mongoose.model("studentGroups", groupSchema);
+const Group = mongoose.model("vsmGroups", groupSchema);
 
 module.exports = Group;

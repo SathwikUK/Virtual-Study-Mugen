@@ -1,69 +1,57 @@
+// src/pages/Login.jsx
 import { useState } from "react";
-import axios from "axios";
+import axios from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
-import loginImage from "../assets/vsmlog.png"; // Replace with your actual image
+import loginImage from "../assets/vsmlog.png"; // Replace with your image
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student"); // Default role is 'student'
+  const [role, setRole] = useState("student");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // Toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
+
+  // States for forgot password modal
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMessage, setForgotMessage] = useState("");
+  // New state to track success (true) or error (false)
+  const [forgotSuccess, setForgotSuccess] = useState(null);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === "email") {
-      setEmail(value);
-    } else if (name === "password") {
-      setPassword(value);
-    } else if (name === "role") {
-      setRole(value);
-    }
+    if (name === "email") setEmail(value);
+    else if (name === "password") setPassword(value);
+    else if (name === "role") setRole(value);
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!email || !password) {
       setMessage("Please fill in all fields.");
       return;
     }
-
     setLoading(true);
     setMessage("");
-
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
-        {
-          email,
-          password,
-          role,
-        }
-      );
-
+      const response = await axios.post("/auth/login", {
+        email,
+        password,
+        role,
+      });
       const { token, role: serverRole } = response.data;
-
-      // Validate that the returned role matches the selected role
       if (serverRole !== role) {
         setMessage("Invalid credentials for the selected role.");
         setLoading(false);
         return;
       }
-
       localStorage.setItem("token", token);
-
-      if (serverRole === "admin") {
-        navigate("/admin-dashboard");
-      } else if (serverRole === "student") {
-        navigate("/dashboard");
-      }
+      navigate(serverRole === "admin" ? "/admin-dashboard" : "/dashboard");
     } catch (error) {
       setMessage(error.response?.data?.message || "Login failed");
     } finally {
@@ -71,21 +59,33 @@ const Login = () => {
     }
   };
 
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      setForgotMessage("Please enter your email.");
+      setForgotSuccess(false);
+      return;
+    }
+    setForgotLoading(true);
+    setForgotMessage("");
+    try {
+      const response = await axios.post("/auth/forgot-password", {
+        email: forgotEmail,
+      });
+      setForgotMessage(response.data.message);
+      setForgotSuccess(true);
+    } catch (error) {
+      setForgotMessage(
+        error.response?.data?.message || "Failed to send reset link."
+      );
+      setForgotSuccess(false);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
-    // Outer container with glowing backgrounds and relative positioning
     <div className="min-h-screen flex items-center justify-center bg-gray-1000 p-6 relative overflow-hidden">
-      {/* Glowing background blobs */}
-      <div className="absolute top-[-15%] left-[-15%] w-[400px] h-[400px] bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-30 animate-pulse" />
-      <div className="absolute bottom-[30%] right-[50%] w-[200px] h-[200px] bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full blur-3xl opacity-30 animate-ping" />
-      <div className="absolute bottom-[-15%] right-[-15%] w-[400px] h-[400px] bg-gradient-to-br from-purple-600 to-blue-600 rounded-full blur-3xl opacity-30 animate-pulse" />
-
-      {/* Background image for small devices only */}
-      <div
-        className="absolute inset-0 bg-cover bg-center md:hidden"
-        style={{ backgroundImage: `url(${loginImage})`, opacity: 0.15 }}
-      ></div>
-
-      {/* Back to Home button */}
       <button
         onClick={() => navigate("/")}
         type="button"
@@ -95,9 +95,7 @@ const Login = () => {
         Back to Home
       </button>
 
-      {/* Main Content Container */}
       <div className="flex flex-col md:flex-row items-center w-full max-w-5xl bg-gray-1000 rounded-xl overflow-hidden gap-10 relative z-20 shadow-lg">
-        {/* Left Div - Image (visible only on md and larger screens) */}
         <div className="hidden md:flex md:w-1/2 p-12 items-center justify-center">
           <img
             src={loginImage}
@@ -106,7 +104,6 @@ const Login = () => {
           />
         </div>
 
-        {/* Right Div - Form */}
         <div className="w-full md:w-1/2 p-10 bg-gray-950 rounded-lg text-white space-y-8">
           <form
             onSubmit={handleSubmit}
@@ -115,25 +112,20 @@ const Login = () => {
             <h2 className="text-4xl font-extrabold text-center mt-2 mb-6 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
               Login
             </h2>
-
             {message && (
               <div className="mb-4 text-center text-red-400 font-medium">
                 {message}
               </div>
             )}
-
-            <div>
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={email}
-                onChange={handleChange}
-                required
-                className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-gray-400"
-              />
-            </div>
-
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={email}
+              onChange={handleChange}
+              required
+              className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-gray-400"
+            />
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -152,7 +144,6 @@ const Login = () => {
                 {showPassword ? "🙈" : "👁️"}
               </button>
             </div>
-
             <div>
               <label className="block text-gray-400 font-medium mb-2">
                 Role
@@ -182,7 +173,6 @@ const Login = () => {
                 </label>
               </div>
             </div>
-
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 ease-in-out"
@@ -190,8 +180,16 @@ const Login = () => {
             >
               {loading ? "Logging in..." : "Login"}
             </button>
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(true)}
+                className="text-blue-400 font-semibold hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
           </form>
-
           <p className="text-center text-gray-400">
             Don't have an account?{" "}
             <a
@@ -203,6 +201,62 @@ const Login = () => {
           </p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-70"></div>
+          <div
+            className="bg-black rounded-lg p-6 z-10 w-80 border border-purple-700 
+                       shadow-2xl shadow-[0_0_20px_2px_rgba(128,0,128,0.7)] 
+                       transition-shadow duration-300"
+          >
+            <h3 className="text-xl font-bold text-purple-400 mb-4">
+              Forgot Password
+            </h3>
+            <p className="text-gray-300 text-sm mb-4">
+              Enter your email to receive a password reset link.
+            </p>
+            <input
+              type="email"
+              placeholder="Your email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              className="w-full p-2 rounded mb-2 bg-gray-700 text-white border border-purple-700
+                         focus:ring-2 focus:ring-purple-500 focus:outline-none"
+            />
+            {forgotMessage && (
+              <p
+                className={`text-xs mb-2 ${
+                  forgotSuccess ? "text-green-400" : "text-red-400"
+                }`}
+              >
+                {forgotMessage}
+              </p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowForgotModal(false);
+                  setForgotEmail("");
+                  setForgotMessage("");
+                  setForgotSuccess(null);
+                }}
+                className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-500 transition-colors shadow-md hover:shadow-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleForgotSubmit}
+                disabled={forgotLoading}
+                className="px-4 py-2 bg-purple-600 rounded hover:bg-purple-500 transition-colors shadow-md hover:shadow-lg"
+              >
+                {forgotLoading ? "Sending..." : "Send Reset Link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

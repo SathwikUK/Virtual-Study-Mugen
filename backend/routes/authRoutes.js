@@ -1,6 +1,6 @@
 const express = require('express');
 const upload = require("../config/multer");
-const { register, login, verifyOTP,getNotifications,getUserById,searchUsers,updateUser,respondToGroupInvite, sendGroupInvite,resendOTP ,createGroup,getGroups,profile} = require('../controllers/authController');
+const { register, login, verifyOTP,getNotifications,forgotPassword,resetPassword,getUserById,searchUsers,updateUser,respondToGroupInvite, sendGroupInvite,resendOTP ,createGroup,getGroups,profile} = require('../controllers/authController');
 const protect = require('../middleware/authMiddleware');  // Import the protect middleware
 const router = express.Router();
 
@@ -26,9 +26,12 @@ router.post('/login', login);
 router.post('/verify-otp', verifyOTP);
 
 // Resend OTP (optional, could be a protected route or not)
-router.post('/resend-otp', resendOTP);
+router.post('/resendOtp', resendOTP);
 
 // Protected route (example: get user profile)
 router.get('/profile', protect, profile);
+
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 module.exports = router;

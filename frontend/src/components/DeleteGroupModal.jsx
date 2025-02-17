@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 import { FiLoader } from "react-icons/fi";
+import axios from "../api/axios";
 
 const DeleteGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
   const [confirmationName, setConfirmationName] = useState("");
@@ -15,15 +16,10 @@ const DeleteGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
     setIsDeleting(true); // Show spinner
 
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/admin/groups/${selectedGroup._id}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!response.ok) throw new Error("Failed to delete group.");
+      // Delete the group using Axios
+      await axios.delete(`/admin/groups/${selectedGroup._id}`, {
+        headers: { "Content-Type": "application/json" },
+      });
 
       toast.success(` ${selectedGroup.name} deleted successfully!`);
       fetchGroups();
