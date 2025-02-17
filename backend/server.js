@@ -22,13 +22,14 @@ const server = http.createServer(app);
 // Configure Socket.io to accept any origin
 const io = new Server(server, {
   cors: {
-    origin: "*", // Accept requests from any origin
+    origin: "http://localhost:5173", // Allow requests only from this origin
     methods: ["GET", "POST"],
     credentials: true,
   },
   maxHttpBufferSize: 1e8,
   pingTimeout: 60000,
 });
+
 
 // Access API keys from .env
 const COHERE_API_KEY = process.env.COHERE_API_KEY;
