@@ -12,4 +12,4 @@ const UserSchema = new mongoose.Schema({
   image: { type: Buffer }  // New field for storing image data as Buffer
 });
 
-module.exports = mongoose.model('vsmUser', UserSchema);
+module.exports = mongoose.model('vsUser', UserSchema);
