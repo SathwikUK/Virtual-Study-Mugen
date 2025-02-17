@@ -22,7 +22,7 @@ const server = http.createServer(app);
 // Configure Socket.io to accept any origin
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Allow requests only from this origin
+    origin: "https://virtual-study-mugen.vercel.app/", // Allow requests only from this origin
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -40,7 +40,7 @@ app.set("io", io);
 // Middleware to allow requests from any origin
 app.use(
   cors({
-    origin: "*", // Allow all origins
+    origin: "https://virtual-study-mugen.vercel.app/", // Allow all origins
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
