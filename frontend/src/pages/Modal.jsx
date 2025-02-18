@@ -1,5 +1,6 @@
 // Modal.jsx
 import React, { useState, useEffect, useCallback, memo } from 'react';
+import { toast } from 'react-toastify';
 
 const Modal = ({
   onClose,
@@ -9,13 +10,18 @@ const Modal = ({
   setGroupDescription,
   groupImage,
   setGroupImage,
-  onSubmit
+  onSubmit,
 }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
   // Memoize file upload handler
-  const handleFileUpload = useCallback((e) => {
-    const file = e.target.files[0];
-    setGroupImage(file);
-  }, [setGroupImage]);
+  const handleFileUpload = useCallback(
+    (e) => {
+      const file = e.target.files[0];
+      setGroupImage(file);
+    },
+    [setGroupImage]
+  );
 
   // Create a preview URL for the uploaded image and revoke when done
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -29,13 +35,36 @@ const Modal = ({
     }
   }, [groupImage]);
 
+  // Handle form submission with a loading effect and toast notification
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    try {
+      // Assume onSubmit returns a promise
+      await onSubmit();
+      toast.success('Group created successfully!', {
+        toastId: 'group-success',
+        autoClose: 3000, // auto-close after 3 seconds
+      });
+    } catch (error) {
+      toast.error('An error occurred while creating the group.', {
+        toastId: 'group-error',
+        autoClose: 3000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
       <div className="relative w-full max-w-md rounded-xl bg-[#1B1B2F] p-6 shadow-neon">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#3B3B55] pb-3 mb-4">
           <h2 className="text-2xl font-bold text-white">Create Group</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors focus:outline-none text-2xl">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition-colors focus:outline-none text-2xl"
+          >
             ×
           </button>
         </div>
@@ -107,16 +136,34 @@ const Modal = ({
           </button>
           <button
             type="button"
-            onClick={onSubmit}
-            className="rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-1"
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className={`rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-1 ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            Create
+            {isLoading ? (
+              <div className="flex items-center">
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                Creating...
+              </div>
+            ) : (
+              'Create'
+            )}
           </button>
         </div>
       </div>
 
       {/* Custom Styles for Neon Glow */}
-      <style jsx>{`
+      <style jsx="true">{`
         .shadow-neon {
           box-shadow: 0 0 15px rgba(139, 92, 246, 0.7), 0 0 30px rgba(139, 92, 246, 0.5);
         }
