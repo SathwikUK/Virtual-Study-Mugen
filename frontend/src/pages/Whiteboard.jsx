@@ -16,7 +16,7 @@ import {
 } from "react-icons/fa";
 
 // Initialize socket connection
-const socket = io('http://localhost:5000');
+const socket = io('https://virtual-study-mugen-backend.onrender.com');
 
 socket.on('connect', () => {
   console.log('Connected to server');
