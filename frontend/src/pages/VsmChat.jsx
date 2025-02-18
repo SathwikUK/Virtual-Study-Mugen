@@ -17,7 +17,7 @@ import { useToast } from "../hooks/use-toast";
 import katex from "katex";
 import openAiGif from "../assets/hina.gif";
 
-const socket = io("https://virtual-study-mugen-backend.onrender.com", {
+const socket = io("https://virtual-study-mugen-backend.onrender.com/", {
   transports: ["websocket"],
   upgrade: false,
 });
@@ -82,7 +82,7 @@ const VsmChat = ({ onBack }) => {
   };
 
   useEffect(() => {
-    socketRef.current = io("https://virtual-study-mugen-backend.onrender.com", {
+    socketRef.current = io("https://virtual-study-mugen-backend.onrender.com/", {
       transports: ["websocket"],
       upgrade: false,
     });
