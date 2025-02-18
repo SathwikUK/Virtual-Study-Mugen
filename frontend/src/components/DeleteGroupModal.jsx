@@ -13,7 +13,7 @@ const DeleteGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
       return;
     }
 
-    setIsDeleting(true); // Show spinner
+    setIsDeleting(true);
 
     try {
       // Delete the group using Axios
@@ -21,14 +21,19 @@ const DeleteGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
         headers: { "Content-Type": "application/json" },
       });
 
-      toast.success(` ${selectedGroup.name} deleted successfully!`);
+      toast.success(`${selectedGroup.name} deleted successfully!`);
+
       fetchGroups();
-      onClose();
+
+      // Delay closing the modal to allow toast to show
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
       console.error(error);
-      toast.error(" Error deleting the group.");
+      toast.error("Error deleting the group.");
     } finally {
-      setIsDeleting(false); // Hide spinner
+      setIsDeleting(false);
     }
   };
 
@@ -68,7 +73,14 @@ const DeleteGroupModal = ({ selectedGroup, onClose, fetchGroups }) => {
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-all duration-200 flex items-center"
             disabled={isDeleting}
           >
-            {isDeleting ? <FiLoader className="animate-spin mr-2" /> : "Delete"}
+            {isDeleting ? (
+              <>
+                <FiLoader className="animate-spin mr-2" />
+                Deleting...
+              </>
+            ) : (
+              "Delete"
+            )}
           </button>
         </div>
       </div>

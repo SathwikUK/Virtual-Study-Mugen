@@ -1,6 +1,4 @@
-// Modal.jsx
 import React, { useState, useEffect, useCallback, memo } from 'react';
-import { toast } from 'react-toastify';
 
 const Modal = ({
   onClose,
@@ -13,6 +11,7 @@ const Modal = ({
   onSubmit,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 
   // Memoize file upload handler
   const handleFileUpload = useCallback(
@@ -35,21 +34,21 @@ const Modal = ({
     }
   }, [groupImage]);
 
-  // Handle form submission with a loading effect and toast notification
+  // Handle form submission with loading effect and popup notification
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
       // Assume onSubmit returns a promise
       await onSubmit();
-      toast.success('Group created successfully!', {
-        toastId: 'group-success',
-        autoClose: 3000, // auto-close after 3 seconds
-      });
+
+      // Show success popup in the corner
+      setShowPopup(true);
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     } catch (error) {
-      toast.error('An error occurred while creating the group.', {
-        toastId: 'group-error',
-        autoClose: 3000,
-      });
+      console.error("Error creating group:", error);
     } finally {
       setIsLoading(false);
     }
@@ -58,6 +57,16 @@ const Modal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
       <div className="relative w-full max-w-md rounded-xl bg-[#1B1B2F] p-6 shadow-neon">
+        {/* Popup Notification at top-right corner */}
+        {showPopup && (
+          <div className="absolute top-2 right-2 bg-green-500 text-white p-2 rounded shadow-lg"
+               style={{ width: '150px', height: 'auto' }}>
+            <p className="text-sm font-semibold text-center">
+              Group created successfully!
+            </p>
+          </div>
+        )}
+
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#3B3B55] pb-3 mb-4">
           <h2 className="text-2xl font-bold text-white">Create Group</h2>

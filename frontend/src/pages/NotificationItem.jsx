@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import axios from "../api/axios";
 import { toast } from "react-toastify";
 
 const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedAction, setSelectedAction] = useState(null); // "accept" or "reject"
+  const [hasShownToast, setHasShownToast] = useState(false); // Prevent duplicate toasts
+
   const getTimeAgo = (createdAt) => {
     if (!createdAt) return "Time unavailable";
     const now = new Date();
@@ -12,10 +16,8 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
 
     if (diffInSeconds < 60) return "just now";
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800)
-      return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
     return `${Math.floor(diffInSeconds / 604800)}w ago`;
   };
 
@@ -32,10 +34,20 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
   };
 
   const handleResponse = async (accept) => {
+    setIsLoading(true);
+    setSelectedAction(accept ? "accept" : "reject");
+
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        toast.error("Authentication required");
+        if (!hasShownToast) {
+          toast.error("Authentication required", {
+            toastId: `notification-error-${notification._id}`,
+          });
+          setHasShownToast(true);
+        }
+        setIsLoading(false);
+        setSelectedAction(null);
         return;
       }
 
@@ -58,14 +70,23 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
         const message = accept
           ? `Successfully joined ${notification.groupName}`
           : `Declined invitation to ${notification.groupName}`;
-        toast.success(message);
 
-        // Call onStatusUpdate with this notification's ID.
-        // The parent can then mark this notification as read (or update its status)
+        // For accepted invites with onGroupUpdate provided,
+        // assume the sidebar update will handle its own toast.
+        // Otherwise, show the toast here—only once.
+        if (!hasShownToast && (!accept || !onGroupUpdate)) {
+          toast.success(message, {
+            toastId: `notification-${notification._id}`,
+          });
+          setHasShownToast(true);
+        }
+
+        // Update notification status in the parent component.
         if (onStatusUpdate) {
           onStatusUpdate(notification._id);
         }
 
+        // If accepted, fetch the updated groups list.
         if (accept && onGroupUpdate) {
           try {
             const groupsResponse = await axios.get("/auth/groups", {
@@ -79,9 +100,17 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
       }
     } catch (error) {
       console.error("Error responding to invitation:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to respond to invitation"
-      );
+      if (!hasShownToast) {
+        toast.error(
+          error.response?.data?.message || "Failed to respond to invitation",
+          { toastId: `notification-error-${notification._id}` }
+        );
+        setHasShownToast(true);
+      }
+      // Reset selectedAction on error so the user can try again.
+      setSelectedAction(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -122,56 +151,106 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
         {/* Right Section: Accept/Reject buttons or status */}
         <div className="flex flex-col items-end gap-1">
           {(!notification.status || notification.status === "pending") && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleResponse(true)}
-                className="
-                  px-3
-                  py-1
-                  rounded-md
-                  bg-gradient-to-r
-                  from-green-600
-                  to-green-700
-                  text-white
-                  text-sm
-                  hover:from-green-500
-                  hover:to-green-600
-                  focus:outline-none
-                  ring-1
-                  ring-green-400
-                  ring-offset-2
-                  ring-offset-black
-                  transition-all
-                  duration-200
-                "
-              >
-                Accept
-              </button>
-              <button
-                onClick={() => handleResponse(false)}
-                className="
-                  px-3
-                  py-1
-                  rounded-md
-                  bg-gradient-to-r
-                  from-red-600
-                  to-red-700
-                  text-white
-                  text-sm
-                  hover:from-red-500
-                  hover:to-red-600
-                  focus:outline-none
-                  ring-1
-                  ring-red-400
-                  ring-offset-2
-                  ring-offset-black
-                  transition-all
-                  duration-200
-                "
-              >
-                Reject
-              </button>
-            </div>
+            <>
+              {selectedAction ? (
+                // Show only one button with spinner if an action is selected
+                <button
+                  disabled
+                  className="
+                    px-3
+                    py-1
+                    rounded-md
+                    bg-gray-600
+                    text-white
+                    text-sm
+                    focus:outline-none
+                    ring-1
+                    ring-gray-400
+                    ring-offset-2
+                    ring-offset-black
+                    transition-all
+                    duration-200
+                  "
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className="animate-spin h-5 w-5 text-white mr-2"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </div>
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleResponse(true)}
+                    disabled={isLoading}
+                    className="
+                      px-3
+                      py-1
+                      rounded-md
+                      bg-gradient-to-r
+                      from-green-600
+                      to-green-700
+                      text-white
+                      text-sm
+                      hover:from-green-500
+                      hover:to-green-600
+                      focus:outline-none
+                      ring-1
+                      ring-green-400
+                      ring-offset-2
+                      ring-offset-black
+                      transition-all
+                      duration-200
+                    "
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleResponse(false)}
+                    disabled={isLoading}
+                    className="
+                      px-3
+                      py-1
+                      rounded-md
+                      bg-gradient-to-r
+                      from-red-600
+                      to-red-700
+                      text-white
+                      text-sm
+                      hover:from-red-500
+                      hover:to-red-600
+                      focus:outline-none
+                      ring-1
+                      ring-red-400
+                      ring-offset-2
+                      ring-offset-black
+                      transition-all
+                      duration-200
+                    "
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {notification.status === "accepted" && (
@@ -180,7 +259,9 @@ const NotificationItem = ({ notification, onStatusUpdate, onGroupUpdate }) => {
             </span>
           )}
           {notification.status === "rejected" && (
-            <span className="text-sm text-red-400 font-semibold">Rejected</span>
+            <span className="text-sm text-red-400 font-semibold">
+              Rejected
+            </span>
           )}
         </div>
       </div>
