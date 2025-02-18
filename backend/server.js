@@ -40,7 +40,7 @@ app.set("io", io);
 // Middleware to allow requests from any origin
 app.use(
   cors({
-    origin: "https://vsm-virid.vercel.app/", // Allow all origins
+    origin: "*", // Allow all origins
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
