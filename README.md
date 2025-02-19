@@ -1,51 +1,46 @@
-<div align="center" style="background-color: #0B0014; color:#530f6a; padding: 30px; border-radius: 15px; margin-bottom: 30px;">
-  <p align="center">
-    <img src="./Screenshots/one.png" alt="VSM Logo" width="1200" style="border: 4px solid #C87CFF; border-radius: 50%;" />
-  </p>
-  <h1 style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 900;">
-    ⚡ Virtual Study Mugen (VSM)
-  </h1>
-  <p style="color:#530f6a; font-size: 1.1em; max-width: 800px; margin: auto; line-height: 1.6;">
-    A collaborative study platform where students can chat with peers, form study groups, and engage in interactive learning sessions.
-    The platform features a role-based system that distinguishes between admin and student users, ensuring a secure and organized environment for all participants.
-  </p>
+<div align="center">
+  <img src="./Screenshots/one.png" alt="VSM Logo" width="1200" />
+
+# 👨‍💻 Virtual Study Mugen (VSM💌)
+
+Virtual Study Mugen (VSM) is a collaborative study platform that empowers students to communicate effectively through real-time messaging and seamless file sharing. It enables users to exchange notes, documents, and study materials effortlessly, fostering an engaging learning environment where students can also form study groups. With a robust role-based system that clearly distinguishes between admin and student users, VSM ensures a secure, organized space for academic collaboration and resource sharing.
 </div>
 
-## 🚀 Tech Stack
+## 🧑‍🔧 Tech Stack
 
-<table align="center" style="margin-bottom: 30px; background-color: #1f0126; padding: 20px; border-radius: 10px;">
+<table align="center">
   <tr>
-    <td align="center" width="110" style="background-color: #2e0035; padding: 15px; border-radius: 8px; margin: 5px;">
+    <td align="center" width="110">
       <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/express/express-original.svg" width="48" height="48" alt="Express" />
       <br><strong>Express</strong>
     </td>
-    <td align="center" width="110" style="background-color: #2e0035; padding: 15px; border-radius: 8px; margin: 5px;">
+    <td align="center" width="110">
       <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/mongodb/mongodb-original.svg" width="48" height="48" alt="MongoDB" />
       <br><strong>MongoDB</strong>
     </td>
-    <td align="center" width="110" style="background-color: #2e0035; padding: 15px; border-radius: 8px; margin: 5px;">
+    <td align="center" width="110">
       <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original.svg" width="48" height="48" alt="Node.js" />
       <br><strong>Node.js</strong>
     </td>
-    <td align="center" width="110" style="background-color: #2e0035; padding: 15px; border-radius: 8px; margin: 5px;">
+    <td align="center" width="110">
       <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/react/react-original.svg" width="48" height="48" alt="React" />
       <br><strong>React</strong>
     </td>
   </tr>
   <tr>
-    <td align="center" width="110" style="background-color: #2e0035; padding: 15px; border-radius: 8px; margin: 5px;">
+    <td align="center" width="110">
       <img src="https://jwt.io/img/pic_logo.svg" width="48" height="48" alt="JWT" />
       <br><strong>JWT</strong>
     </td>
-    <td align="center" width="110" style="background-color: #2e0035; padding: 15px; border-radius: 8px; margin: 5px;">
+    <td align="center" width="110">
       <img src="https://nodemailer.com/nm_logo_200x136.png" width="48" height="48" alt="Nodemailer" />
       <br><strong>Nodemailer</strong>
     </td>
-    <td align="center" width="110" style="background-color: #2e0035; padding: 15px; border-radius: 8px; margin: 5px;">
+    <td align="center" width="110">
       <img src="https://socket.io/images/logo.svg" width="48" height="48" alt="Socket.io" />
       <br><strong>Socket.io</strong>
     </td>
-    <td align="center" width="110" style="background-color: #2e0035; padding: 15px; border-radius: 8px; margin: 5px;">
+    <td align="center" width="110">
       <img src="https://www.svgrepo.com/show/306500/openai.svg" width="48" height="48" alt="OpenAI" />
       <br><strong>OpenAI</strong>
     </td>
@@ -54,173 +49,197 @@
 
 ## ✨ Features
 
-<div style="background-color: #1f0126; padding: 20px; border-radius: 10px; margin-bottom: 30px; font-size: 1.05em;">
-  <ul style="list-style-type: none; padding-left: 0;">
-    <li>⚡ <strong>RESTful API</strong> — Well-structured endpoints for seamless integration</li>
-    <li>🔐 <strong>Role Based Login</strong> — Secure login system with distinct roles for admin and student</li>
-    <li>📱 <strong>Responsive Design</strong> — Optimized for a range of devices and screen sizes</li>
-    <li>💬 <strong>Real-time Chat</strong> — Connect and collaborate instantly</li>
-    <li>👥 <strong>Group Creation</strong> — Form study groups effortlessly</li>
-    <li>🛠 <strong>Admin Panel</strong> — Manage users and content efficiently</li>
-    <li>🎨 <strong>Custom Themes</strong> — Personalize your study environment with unique purple-inspired themes</li>
-    <li>🤖 <strong>AI Assistance</strong> — Leverage OpenAI integrations for enhanced learning and support</li>
-  </ul>
-</div>
+- ⚡ **RESTful API** — Well-structured endpoints for seamless integration
+- 🔐 **Role Based Login** — Secure login system with distinct roles for admin and student
+- 📱 **Responsive Design** — Optimized for a range of devices and screen sizes
+- 💬 **Real-time Chat** — Connect and collaborate instantly
+- 👥 **Group Creation** — Form study groups effortlessly
+- 🛠 **Admin Panel** — Manage users and content efficiently
+- 🎨 **Custom Themes** — Personalize your study environment with unique purple-inspired themes
+- 🤖 **AI Assistance** — Leverage OpenAI integrations for enhanced learning and support
 
 ## 🛠 Setup & Installation
 
-<div style="background-color: #1f0126; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
-  <ol style="font-size: 1.05em; line-height: 1.8;">
-    <li>
-      <strong>Clone the repository</strong>
-      <pre style="background-color: #2e0035; padding: 10px; border-radius: 8px; overflow-x: auto;"><code>git clone https://github.com/Somepalli-Venkatesh/vsm.git</code></pre>
-    </li>
-    <li>
-      <strong>Install dependencies for the root</strong>
-      <pre style="background-color: #2e0035; padding: 10px; border-radius: 8px; overflow-x: auto;"><code>npm install</code></pre>
-    </li>
-    <li>
-      <strong>Start the frontend</strong>
-      <pre style="background-color: #2e0035; padding: 10px; border-radius: 8px; overflow-x: auto;"><code>cd vsm/frontend
+1. **Clone the repository**
+```bash
+git clone https://github.com/Somepalli-Venkatesh/vsm.git
+```
+
+2. **Install dependencies for the root**
+```bash
 npm install
-npm run dev</code></pre>
-    </li>
-    <li>
-      <strong>Start the backend</strong>
-      <pre style="background-color: #2e0035; padding: 10px; border-radius: 8px; overflow-x: auto;"><code>cd vsm/backend
+```
+
+3. **Start the frontend**
+```bash
+cd vsm/frontend
 npm install
-npm start</code></pre>
-    </li>
-  </ol>
-</div>
+npm run dev
+```
 
-## 📸 Workflow Screenshots
+4. **Set up the backend**
+```bash
+cd vsm/backend
+npm install
 
-<div style="text-align: center; margin: 20px 0;">
-  <button onclick="toggleScreenshots()" style="background-color: #2e0035; color: #C87CFF; padding: 12px 24px; border: 2px solid #C87CFF; border-radius: 8px; cursor: pointer; font-size: 1.1em;">
-    View Workflow Screenshots
-  </button>
-</div>
+# Create a .env file in the backend directory with the following content:
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.example.mongodb.net/?retryWrites=true&w=majority
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your.email@gmail.com
+EMAIL_PASS=your_16_digit_app_password
+COHERE_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+JWT_SECRET=your_custom_jwt_secret_key_here
+FRONTEND_URL=http://localhost:3000
+```
 
-<div id="screenshots" style="display: none;">
-  <!-- Screenshot 1 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/one.png" alt="Workflow 1" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 1: Landing Page</p>
-  </div>
-  <!-- Screenshot 2 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/two.png" alt="Workflow 2" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 2: Login Process</p>
-  </div>
-  <!-- Screenshot 3 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/three.png" alt="Workflow 3" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 3: Registration Page</p>
-  </div>
-  <!-- Screenshot 4 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/four.png" alt="Workflow 4" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 4: Dashboard Overview</p>
-  </div>
-  <!-- Screenshot 5 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/five.png" alt="Workflow 5" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 5: Real-time Chat Interface</p>
-  </div>
-  <!-- Screenshot 6 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/six.png" alt="Workflow 6" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 6: Group Creation Page</p>
-  </div>
-  <!-- Screenshot 7 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/seven.png" alt="Workflow 7" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 7: Admin Panel - User Management</p>
-  </div>
-  <!-- Screenshot 8 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/eight.png" alt="Workflow 8" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 8: Admin Panel - Content Management</p>
-  </div>
-  <!-- Screenshot 9 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/nine.png" alt="Workflow 9" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 9: Custom Themes Settings</p>
-  </div>
-  <!-- Screenshot 10 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/ten.png" alt="Workflow 10" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 10: AI Assistance Integration</p>
-  </div>
-  <!-- Screenshot 11 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/eleven.png" alt="Workflow 11" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 11: Notification System</p>
-  </div>
-  <!-- Screenshot 12 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/twelve.png" alt="Workflow 12" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 12: Profile Settings</p>
-  </div>
-  <!-- Screenshot 13 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/thirteen.png" alt="Workflow 13" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 13: Study Group Chat</p>
-  </div>
-  <!-- Screenshot 14 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/fourteen.png" alt="Workflow 14" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 14: Calendar and Events</p>
-  </div>
-  <!-- Screenshot 15 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/fifteen.png" alt="Workflow 15" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 15: Resource Sharing</p>
-  </div>
-  <!-- Screenshot 16 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/sixteen.png" alt="Workflow 16" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 16: Notifications Overview</p>
-  </div>
-  <!-- Screenshot 17 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/seventeen.png" alt="Workflow 17" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 17: Help & Support</p>
-  </div>
-  <!-- Screenshot 18 -->
-  <div style="display: inline-block; margin: 10px; text-align: center;">
-    <img src="./Screenshots/eighteen.png" alt="Workflow 18" width="400" style="display: block; margin: 0 auto;" />
-    <p style="color: #C87CFF; margin-top: 5px;">Workflow 18: Final Overview</p>
-  </div>
-</div>
+5. **Start the backend**
+```bash
+npm start
+```
+
+### 🗝 Environment Variables Guide:
+- **MONGO_URI**: Your MongoDB Atlas connection string
+- **EMAIL_HOST**: SMTP server host (smtp.gmail.com for Gmail)
+- **EMAIL_PORT**: SMTP server port (587 for TLS)
+- **EMAIL_USER**: Your Gmail address
+- **EMAIL_PASS**: Your Gmail App Password (16-digit)
+- **COHERE_API_KEY**: Your Cohere API key
+- **JWT_SECRET**: Custom secret key for JWT tokens
+- **FRONTEND_URL**: Frontend application URL
+
+### 🔏 Important Security Notes:
+1. Never commit your .env file to version control
+2. Add .env to your .gitignore file
+3. Use strong, unique values for JWT_SECRET
+4. For Gmail, use App Password instead of account password
+5. Keep your API keys secure
+
+## 📸 Workflow
+
+
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/one.png" alt="Landing Page" />
+      <p><strong>Landing Page</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/two.png" alt="Login Process" />
+      <p><strong>Login Process</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/three.png" alt="Registration Page" />
+      <p><strong>Registration Page</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/four.png" alt="Dashboard Overview" />
+      <p><strong>OTP Verification</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/five.png" alt="Real-time Chat Interface" />
+      <p><strong>User Dashboard</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/six.png" alt="Group Creation Page" />
+      <p><strong>Chat Section</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/seven.png" alt="Admin Panel - User Management" />
+      <p><strong>Group Details</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/eight.png" alt="Admin Panel - Content Management" />
+      <p><strong>Group Invitation</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/nine.png" alt="Custom Themes Settings" />
+      <p><strong>Deleting Group</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/ten.png" alt="AI Assistance Integration" />
+      <p><strong>Create Group</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/eleven.png" alt="Notification System" />
+      <p><strong>User Profile</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/twelve.png" alt="Profile Settings" />
+      <p><strong>Editing User Profile</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/thirteen.png" alt="Study Group Chat" />
+      <p><strong>Click on Robo Icon</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/fourteen.png" alt="Calendar and Events" />
+      <p><strong>Chat with Hina</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/fifteen.png" alt="Resource Sharing" />
+      <p><strong>Notification</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/sixteen.png" alt="Notifications Overview" />
+      <p><strong>Admin Dashboard-Users</strong></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="./Screenshots/seventeen.png" alt="Help & Support" />
+      <p><strong>Admin Dashboard-Groups</strong></p>
+    </td>
+    <td width="50%" align="center">
+      <img src="./Screenshots/eighteen.png" alt="Final Overview" />
+      <p><strong>Home</strong></p>
+    </td>
+  </tr>
+</table>
+
+
 
 ## 🌐 Live Demo
 
-<div align="center" style="background-color: #1f0126; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
-  <a href="https://virtual-study-mugen.vercel.app/" target="_blank" style="text-decoration: none;">
-    <img src="./Screenshots/one.png" alt="Live Demo" width="200" style="border: 3px solid #C87CFF; border-radius: 10px;" />
+<div align="left">
+  <a href="https://virtual-study-mugen.vercel.app/" target="_blank">
+    <img src="./Screenshots/one.png" alt="Live Demo" width="200" />
   </a>
-  <p style="color: #C87CFF; margin-top: 10px; font-size: 1.1em;">Click the image above to view the live demo</p>
+  <p><strong>Click the image above to view the live demo</strong></p>
 </div>
 
 ## 📫 Contact
 
-<div align="center" style="background-color: #1f0126; padding: 20px; border-radius: 10px; margin-bottom: 30px;">
-  <a href="https://instagram.com/SathwikUK" target="_blank" style="margin: 0 10px;">
+<div align="left">
+  <a href="https://www.instagram.com/SathwikUK" target="_blank">
     <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" width="40" />
-  </a>
-  <a href="https://linkedin.com/sathwikuk" target="_blank" style="margin: 0 10px;">
+  </a>&nbsp;&nbsp;
+  <a href="https://www.linkedin.com/in/sathwikUK" target="_blank">
     <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" alt="LinkedIn" width="40" />
-  </a>
-  <a href="https://github.com/SathwikUK" target="_blank" style="margin: 0 10px;">
+  </a>&nbsp;&nbsp;
+  <a href="https://github.com/SathwikUK" target="_blank">
     <img src="https://cdn-icons-png.flaticon.com/512/25/25231.png" alt="GitHub" width="40" />
-  </a>
-  <a href="mailto:sathwikuk@gmail.com" target="_blank" style="margin: 0 10px;">
+  </a>&nbsp;&nbsp;
+  <a href="mailto:sathwiksampengala@gmail.com" target="_blank">
     <img src="https://img.icons8.com/color/48/000000/new-post.png" alt="Email" width="40" />
   </a>
 </div>
 
-<div align="center" style="margin-bottom: 30px;">
-  <p style="color: #C87CFF; font-size: 1.1em;">Made with 💜 by the Virtual Study Mugen Team</p>
+<div align="right">
+  <h1>Made with 💜 by the VSM(o2🐼,k0🐻‍❄️,k4🐻)</h1>
 </div>
