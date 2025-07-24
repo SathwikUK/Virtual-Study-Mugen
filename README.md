@@ -62,7 +62,7 @@ Virtual Study Mugen (VSM) is a collaborative study platform that empowers studen
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/Somepalli-Venkatesh/vsm.git
+git clone https://github.com/SathwikUK/Virtual-Study-Mugen
 ```
 
 2. **Install dependencies for the root**
